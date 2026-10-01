@@ -68,10 +68,11 @@ export interface ResultadoHash {
 /**
  * Valida a cadeia de hashes SHA-512 das partes do QR Code.
  *
- * Para cada parte i: HASH_i = SHA-512(HASH_{i-1} ‖ conteúdo_i), em que
- * conteúdo_i vai do início do QR até o espaço que antecede "HASH:".
- * Por robustez, aceitam-se as variações de representação do hash anterior
- * (bytes ou hexadecimal) e de inclusão do espaço final.
+ * Formato confirmado com QR Code real de urna (2022): HASH = SHA-512 do
+ * conteúdo SEM o cabeçalho ("QRBU:i:n VRQR:x VRCH:y ") e sem o espaço que
+ * antecede "HASH:". Nas partes seguintes de um BU com vários QR Codes, o
+ * hash da parte anterior é encadeado; por não haver exemplo real desse caso,
+ * aceitam-se as variações de representação (bytes/hexadecimal, antes/depois).
  */
 export async function validarHashes(partes: ParteQr[]): Promise<ResultadoHash> {
   let anterior: string | null = null;
@@ -79,7 +80,8 @@ export async function validarHashes(partes: ParteQr[]): Promise<ResultadoHash> {
     const h = conteudoAntesDoHash(p.texto);
     if (!h) return { valido: null, detalhe: `QR ${p.indice}/${p.total} não possui campo HASH.` };
     const esperado = h.hash.toLowerCase();
-    const conteudos = [h.conteudo, h.conteudo.trimEnd()];
+    const semCabecalho = h.conteudo.replace(/^QRBU:\S+\s+(VRQR:\S+\s+)?(VRCH:\S+\s+)?/, '');
+    const conteudos = [semCabecalho.trimEnd(), semCabecalho, h.conteudo.trimEnd(), h.conteudo];
     const prefixos: (string | Uint8Array)[] =
       anterior === null ? [''] : [hexParaBytes(anterior), anterior.toUpperCase(), anterior.toLowerCase()];
     let ok = false;

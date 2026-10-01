@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { CORPO_BU, gerarQrs } from '../test/fixtures';
+import { CORPO_BU, gerarQrs, QR_REAL_2022 } from '../test/fixtures';
 import { ErroQr, interpretarQr, MontadorQr, separarPartes, validarHashes } from './qrbu';
 
 describe('QR Code do Boletim de Urna', () => {
+  it('confere o hash e interpreta um QR Code real de urna (2022)', async () => {
+    const m = new MontadorQr();
+    expect(m.adicionar(QR_REAL_2022).completo).toBe(true);
+    expect(await validarHashes(m.ordenadas())).toMatchObject({ valido: true });
+    const { boletim: b } = interpretarQr(m.ordenadas());
+    expect(b).toMatchObject({ uf: 'SP', codigoMunicipio: '63452', zona: '75', secao: '182', local: '1015', pleito: '407' });
+    expect(b).toMatchObject({ eleitoresAptos: 325, comparecimento: 278, faltosos: 47, dataVotacao: '2022-10-30' });
+    expect(b.cargos.map((c) => c.cargo)).toEqual(['GOVERNADOR', 'PRESIDENTE']);
+    expect(b.cargos[1].candidatos).toEqual([{ numero: '13', votos: 45 }, { numero: '22', votos: 225 }]);
+    expect(b.cargos[1]).toMatchObject({ votosNominais: 270, brancos: 5, nulos: 3, totalApurado: 278 });
+  });
+
+  it('rejeita o QR real com um voto alterado', async () => {
+    const m = new MontadorQr();
+    m.adicionar(QR_REAL_2022.replace('22:225', '22:226'));
+    expect((await validarHashes(m.ordenadas())).valido).toBe(false);
+  });
+
   it('monta partes lidas fora de ordem e interpreta o boletim', async () => {
     const qrs = await gerarQrs();
     const m = new MontadorQr();

@@ -12,9 +12,9 @@ export async function gerarQrs(corpos: string[] = CORPO_BU, assinatura = 'ABCDEF
   const out: string[] = [];
   let anterior: string | null = null;
   for (let i = 0; i < corpos.length; i++) {
-    const conteudo = `QRBU:${i + 1}:${corpos.length} VRQR:1.5 VRCH:20220930 ${corpos[i]} `;
-    const hash: string = anterior ? await sha512Hex(hexParaBytes(anterior), conteudo) : await sha512Hex(conteudo);
-    let texto = `${conteudo}HASH:${hash.toUpperCase()}`;
+    // Mesmo cálculo do TSE: SHA-512 do conteúdo sem o cabeçalho, até antes de " HASH:".
+    const hash: string = anterior ? await sha512Hex(hexParaBytes(anterior), corpos[i]) : await sha512Hex(corpos[i]);
+    let texto = `QRBU:${i + 1}:${corpos.length} VRQR:1.5 VRCH:20220930 ${corpos[i]} HASH:${hash.toUpperCase()}`;
     if (i === corpos.length - 1) texto += ` ASSI:${assinatura}`;
     out.push(texto);
     anterior = hash;
@@ -55,3 +55,7 @@ Código de identificação da carga 666.070.534.576.779.579.335.458
 ASSINATURA QR CODE
 434ABDE4D60C4601209F0C5B3957BEE6ED306497B4B27DDC7C36553CCB3A6F4F
 995BF9117464A2BAF47897CADE53098D5515C6DB219ACE2E83CCAA4D2054D903`;
+
+/** QR Code real de um Boletim de Urna (Conchal/SP, zona 75, seção 182, 2º turno de 2022). */
+export const QR_REAL_2022 =
+  'QRBU:1:1 VRQR:1.5 VRCH:20220829 ORIG:VOTA ORLC:LEG PROC:395 DTPL:20221030 PLEI:407 TURN:2 FASE:O UNFE:SP MUNI:63452 ZONA:75 SECA:182 IDUE:1787323 IDCA:666070534576779579335458 VERS:8.26.0.0 LOCA:1015 APTO:325 COMP:278 FALT:47 HBMA:12 DTAB:20221030 HRAB:080001 DTFC:20221030 HRFC:170236 IDEL:547 CARG:3 TIPO:0 VERC:202210071317 10:223 13:40 APTA:325 NOMI:263 BRAN:7 NULO:8 TOTC:278 IDEL:545 CARG:1 TIPO:0 VERC:202210071331 13:45 22:225 APTA:325 NOMI:270 BRAN:5 NULO:3 TOTC:278 HASH:C8AADFD1D832BFECE45D288BD42171DD1A140EFDEED9A03EDB84B4C6839FEE3D5DAA15DDF59934B0C76914DFA9EAE34873286F1D14CF748B8EE37CEE06B47410 ASSI:434ABDE4D60C4601209F0C5B3957BEE6ED306497B4B27DDC7C36553CCB3A6F4F995BF9117464A2BAF47897CADE53098D5515C6DB219ACE2E83CCAA4D2054D903';
