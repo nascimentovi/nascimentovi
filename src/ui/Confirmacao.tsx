@@ -1,16 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { comZeros, dataBr, formatarNumero } from '../domain/normalizar';
-import { ICONE_ENTRADA, ROTULO_ENTRADA, type Captura, type ConferenciaTse, type Leitura } from '../domain/types';
+import { ICONE_ENTRADA, ROTULO_ENTRADA, type Captura, type Leitura } from '../domain/types';
 import { aprenderMunicipio } from '../services/capturaQr';
 import { prepararCaptura, registrarDescarte, salvarCaptura, type Preparo } from '../services/registro';
-import { conferenciaTseExigida, consultarBuTse, ErroTse } from '../services/tse';
 import { dataHora, ir, Modal, ROTA_METODO, sinalizar, Topo, useFluxo } from './comum';
 import { TabelaComparacao } from './TabelaComparacao';
 
 type Estado =
-  | { fase: 'tse' }
-  | { fase: 'tse-erro'; mensagem: string; temporario: boolean }
-  | { fase: 'tse-divergente'; conferencia: ConferenciaTse }
   | { fase: 'verificando' }
   | { fase: 'erro'; mensagens: string[]; preparo: Preparo | null }
   | { fase: 'duplicata'; preparo: Preparo }
@@ -67,32 +63,6 @@ export function Confirmacao() {
     }
   }
 
-  /**
-   * Leituras de QR Code são conferidas com o BU oficial publicado pelo TSE
-   * antes de qualquer contabilização. Sem a consulta, a leitura não é aceita.
-   */
-  async function executar(c: Captura) {
-    if (c.origemQr && (await conferenciaTseExigida())) {
-      setEstado({ fase: 'tse' });
-      try {
-        const conferencia = await consultarBuTse(c.boletim);
-        const comTse = { ...c, tse: conferencia };
-        setCaptura(comTse);
-        if (conferencia.status === 'divergente') {
-          sinalizar('aviso');
-          setEstado({ fase: 'tse-divergente', conferencia });
-          return;
-        }
-        await verificar(comTse);
-      } catch (e) {
-        sinalizar('aviso');
-        setEstado({ fase: 'tse-erro', mensagem: (e as Error).message, temporario: !(e instanceof ErroTse) || e.temporario });
-      }
-      return;
-    }
-    await verificar(c);
-  }
-
   useEffect(() => {
     if (executado.current) return;
     executado.current = true;
@@ -100,114 +70,13 @@ export function Confirmacao() {
       ir('/');
       return;
     }
-    void executar(captura);
+    void verificar(captura);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!captura) return null;
   const b = captura.boletim;
   const metodo = ROTA_METODO[captura.tipo];
-
-  if (estado.fase === 'tse') {
-    return (
-      <>
-        <Topo titulo="Consultando TSE…" semVoltar />
-        <main className="conteudo">
-          <div className="msg info">
-            🔄 Buscando o boletim oficial da seção {comZeros(b.secao)} (zona {comZeros(b.zona)}) em resultados.tse.jus.br para conferir com o QR Code lido…
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  if (estado.fase === 'tse-erro') {
-    return (
-      <>
-        <Topo titulo="Não conferido com o TSE" semVoltar />
-        <main className="conteudo">
-          <div className="msg erro" role="alert">
-            <strong>❌ A leitura não foi contabilizada</strong>
-            <p style={{ margin: '6px 0 0' }}>{estado.mensagem}</p>
-          </div>
-          <div className="msg info">
-            Zona {comZeros(b.zona)} | Seção {comZeros(b.secao)}{b.uf ? ` | ${b.uf}` : ''}{b.dataVotacao ? ` | ${dataBr(b.dataVotacao)}` : ''}
-            <br />A leitura do QR Code só é aceita depois de conferida com o boletim oficial publicado pelo TSE.
-          </div>
-          <div className="acoes">
-            <button
-              className="btn"
-              onClick={async () => {
-                await registrarDescarte(captura, null, `Não conferido com o TSE: ${estado.mensagem}`);
-                limpar();
-                ir(metodo);
-              }}
-            >
-              Descartar
-            </button>
-            {estado.temporario && <button className="btn primario" onClick={() => void executar(captura)}>🔄 Tentar novamente</button>}
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  if (estado.fase === 'tse-divergente') {
-    const conf = estado.conferencia;
-    return (
-      <>
-        <Topo titulo="Divergência com o TSE" semVoltar />
-        <main className="conteudo">
-          <div className="msg erro" role="alert">
-            <strong>🔴 O QR Code lido não confere com o boletim oficial do TSE</strong>
-            <p style={{ margin: '6px 0 0' }}>
-              Zona {comZeros(b.zona)} | Seção {comZeros(b.secao)} — {conf.divergencias.length} divergência(s). Pode ser erro de leitura, boletim substituído ou alteração. A leitura ainda não foi contabilizada.
-            </p>
-          </div>
-          <section className="cartao">
-            <h3>Comparação</h3>
-            <div className="rolagem">
-              <table className="tabela">
-                <thead><tr><th>Campo</th><th>QR lido</th><th>TSE</th></tr></thead>
-                <tbody>
-                  {conf.divergencias.map((d) => (
-                    <tr key={d.campo} className="diverge"><td>{d.campo}</td><td className="n">{d.qr}</td><td className="n">{d.tse}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="muted mono">{conf.url}</p>
-          </section>
-          <div className="acoes">
-            <button
-              className="btn"
-              onClick={async () => {
-                await registrarDescarte(captura, null, `Divergente do BU oficial do TSE (${conf.divergencias.map((d) => d.campo).join(', ')})`);
-                limpar();
-                toast('Leitura descartada.');
-                ir(metodo);
-              }}
-            >
-              🗑️ Descartar
-            </button>
-            <button
-              className="btn aviso"
-              onClick={() =>
-                void verificar({
-                  ...captura,
-                  tse: { ...conf, aceito_com_divergencia: true },
-                  avisos: [...(captura.avisos ?? []), `Divergente do BU oficial do TSE: ${conf.divergencias.map((d) => `${d.campo} (QR ${d.qr} × TSE ${d.tse})`).join('; ')}`],
-                })
-              }
-            >
-              Contabilizar mesmo assim
-            </button>
-          </div>
-          <p className="muted">Se contabilizar, o registro fica marcado com alerta no dashboard e na auditoria.</p>
-        </main>
-      </>
-    );
-  }
 
   if (estado.fase === 'verificando') {
     return (
@@ -326,7 +195,6 @@ export function Confirmacao() {
           {b.dataVotacao && <> · {dataBr(b.dataVotacao)}</>}
         </div>
         {l.validacao.checksum_valido === true && <div className="msg ok">🔐 Código verificador (hash) do QR Code conferido.</div>}
-        {l.validacao.tse?.status === 'conferido' && <div className="msg ok">🏛️ Conferido com o boletim oficial do TSE: todos os votos coincidem.</div>}
         {estado.alertas.length > 0 && (
           <div className="msg aviso">
             <strong>Inconsistências registradas (aparecem no dashboard):</strong>

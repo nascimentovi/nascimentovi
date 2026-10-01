@@ -61,19 +61,8 @@ export interface Boletim {
   versaoSoftware?: string;
   /** Fase da urna no QR: O = oficial, S = simulado, T = treinamento. */
   fase?: string;
-  /** Código do pleito no TSE (campo PLEI do QR) — usado para consultar o BU oficial. */
+  /** Código do pleito no TSE (campo PLEI do QR). */
   pleito?: string;
-}
-
-/** Resultado da conferência da leitura com o BU oficial publicado pelo TSE. */
-export interface ConferenciaTse {
-  status: 'conferido' | 'divergente';
-  consultado_em: string;
-  url: string;
-  /** Campos divergentes entre o QR lido e o BU do TSE. */
-  divergencias: { campo: string; qr: string; tse: string }[];
-  /** Contabilizado apesar de divergências, por decisão do operador. */
-  aceito_com_divergencia?: boolean;
 }
 
 /** Confiança (0–100) de cada campo extraído por PDF/OCR; chave = caminho do campo. */
@@ -91,10 +80,6 @@ export interface Captura {
   avisos?: string[];
   /** Usuário alterou algum campo na revisão. */
   correcoesManuais?: boolean;
-  /** Dados vieram de QR Code do BU (câmera, imagem, PDF ou foto). */
-  origemQr?: boolean;
-  /** Conferência com o BU oficial do TSE (leituras de QR Code). */
-  tse?: ConferenciaTse;
 }
 
 export interface ValidacoesEstruturais {
@@ -144,8 +129,6 @@ export interface Leitura {
     codigo_carga: string;
     validacoes_estruturais: ValidacoesEstruturais;
     alertas: string[];
-    /** Conferência com o BU oficial do TSE (ausente quando não se aplica). */
-    tse?: ConferenciaTse;
   };
   confianca?: MapaConfianca;
   dados_brutos: string | null;

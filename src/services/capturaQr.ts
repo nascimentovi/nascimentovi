@@ -38,7 +38,6 @@ export async function capturaDeQr(montador: MontadorQr, tipo: TipoEntrada = 'qr_
     arquivoOriginal: arquivo,
     avisos,
     qualidadeGeral: tipo === 'qr_code' ? null : 100,
-    origemQr: true,
   };
 }
 

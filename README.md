@@ -1,6 +1,6 @@
 # Apuração BU — leitura e contabilização de Boletins de Urna
 
-PWA (aplicativo web instalável, mobile-first) que lê Boletins de Urna (BU) por **QR Code**, **PDF**, **foto (OCR)** ou **digitação**, contabiliza os votos em um dashboard em tempo real e impede que o mesmo boletim seja contado duas vezes, qualquer que seja a forma de entrada. Leituras de QR Code são conferidas com o boletim oficial publicado pelo TSE; as demais formas funcionam **offline**. Não há login. Os dados ficam no próprio aparelho, em IndexedDB.
+PWA (aplicativo web instalável, mobile-first) que lê Boletins de Urna (BU) por **QR Code**, **PDF**, **foto (OCR)** ou **digitação**, contabiliza os votos em um dashboard em tempo real e impede que o mesmo boletim seja contado duas vezes, qualquer que seja a forma de entrada. Funciona **100% offline**, sem login. Os dados ficam no próprio aparelho, em IndexedDB.
 
 ## Como rodar
 
@@ -21,7 +21,7 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 
 | Arquivo | Como usar |
 |---|---|
-| `qr-bu-exemplo.txt` | Leitor QR → "Digitar código" → colar o conteúdo (3 partes com hash válido). É um boletim fictício: a conferência com o TSE vai recusá-lo, pois a seção não existe no site do TSE. |
+| `qr-bu-exemplo.txt` | Leitor QR → "Digitar código" → colar o conteúdo (3 partes com hash válido). |
 | `qr-bu-exemplo-3-partes.png` | Leitor QR → "QR de imagem", ou Foto |
 | `bu-exemplo-secao-0182.pdf` | Upload de PDF (é o mesmo boletim do QR, então é detectado como duplicata) |
 | `bu-exemplo-secao-0183.png` | Foto → Galeria (OCR de outra seção) |
@@ -31,7 +31,6 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 | Escopo | Implementação |
 |---|---|
 | Leitor de QR Code | Câmera traseira com `BarcodeDetector` nativo, quando existe, ou `jsQR`. Lanterna, se o aparelho suportar. Aceita BU dividido em vários QR (`QRBU:i:n`), lidos em qualquer ordem. Fallback: digitar/colar o conteúdo ou ler QR de uma imagem. |
-| **Conferência com o TSE** | Toda leitura de QR Code (câmera, imagem, PDF ou foto) é conferida com o **boletim oficial da seção publicado pelo TSE** antes de ser contabilizada. Detalhes abaixo. |
 | Checksum / código verificador | A cadeia de **HASH SHA-512** de cada parte do QR é recalculada e conferida. Se não confere, a leitura é rejeitada. |
 | Upload de PDF | `pdf.js` (build legacy). Valida tamanho (≤ 50 MB) e assinatura `%PDF-`. Se o PDF tiver QR Code, ele é lido e validado; senão, o texto é extraído e interpretado. PDF digitalizado (só imagem) → oferece OCR. |
 | Foto / OCR | `Tesseract.js` com modelo português **servido localmente**, sem CDN. Pré-processamento (auto-contraste + binarização de Otsu), rotação manual e correção EXIF. Antes do OCR, procura QR Code na foto. |
@@ -43,24 +42,6 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 | Exclusão | **Soft delete**: o registro fica marcado como `deletado`, os votos saem do total (o dashboard soma só registros ativos) e a operação vai para `historico_exclusoes`, com motivo e snapshot. |
 | Auditoria | Sumário de integridade, inconsistências, log de exclusões, leituras descartadas com motivo, exportação CSV (resultados e leituras) e backup JSON. |
 | Offline | Service worker (vite-plugin-pwa) pré-carrega o app, o pdf.js e o motor/modelo do OCR. Cada leitura é gravada em transação no IndexedDB, então nada se perde se o app fechar. |
-
-## Conferência com o boletim oficial do TSE
-
-O QR Code já traz tudo o que é preciso para localizar a seção no site de resultados do TSE: ano (`DTPL`), pleito (`PLEI`), UF (`UNFE`), município (`MUNI`), zona (`ZONA`) e seção (`SECA`). Ao ler um QR, o app:
-
-1. Busca o índice da seção: `https://resultados.tse.jus.br/oficial/ele{ano}/arquivo-urna/{pleito}/dados/{uf}/{mun}/{zona}/{secao}/p{pleito}-{uf}-m{mun}-z{zona}-s{secao}-aux.json`.
-2. Escolhe o boletim totalizado/recebido, ignorando os excluídos, e baixa o texto do BU (`{hash}/….imgbu`).
-3. Interpreta esse texto e compara voto a voto com o QR lido: candidatos, brancos, nulos, totais, aptos, comparecimento, zona e seção.
-
-| Resultado | O que acontece |
-|---|---|
-| ✅ Conferido | Segue para a verificação de duplicidade e a contabilização. O registro fica marcado como "conferido com o TSE". |
-| 🔴 Divergente | Mostra os campos diferentes (QR × TSE) e **não contabiliza**. O operador escolhe **Descartar** ou **Contabilizar mesmo assim**; nesse caso o registro fica com alerta no dashboard e na auditoria. |
-| ❌ Sem resposta (sem internet, BU ainda não publicado, site fora do ar) | **A leitura é bloqueada.** Há os botões "Tentar novamente" e "Descartar". |
-
-A conferência é sempre obrigatória: o app não tem tela de configurações. Se o navegador bloquear o acesso direto ao site do TSE (CORS), o endereço de um proxy que repasse as requisições para `resultados.tse.jus.br` deve ser definido no código (`TSE_BASE_PADRAO`, em `src/services/tse.ts`). Em `npm run dev` e `npm run preview`, o caminho `/tse` já é um proxy pronto.
-
-> ⚠️ Os endereços e o formato dos arquivos do TSE foram implementados conforme a publicação de resultados de 2022, mas **não puderam ser testados contra o site real neste ambiente**, porque o acesso de rede ao TSE estava bloqueado. Os testes simulam as respostas. Faça uma leitura de teste com um QR Code real antes de usar em produção.
 
 ## Proteção contra duplicação
 
@@ -82,8 +63,7 @@ Na tela de duplicata, o usuário pode **Descartar** (fica registrado no históri
 
 ## Observações importantes
 
-- **Formato do QR Code**: segue a especificação pública do TSE (pares `CHAVE:VALOR`; `CARG` abre cada cargo; números de candidato como chave). O hash é verificado aceitando as variações de representação do hash anterior (bytes ou hexadecimal). Ainda **não foi testado com QR Codes reais de urna**. Se um QR real for rejeitado por hash, o cálculo precisa ser ajustado no código (`src/domain/qrbu.ts`).
-- **Fluxo sem internet**: as leituras de QR Code dependem da conferência com o TSE, então precisam de internet. PDF sem QR, foto (OCR) e digitação continuam funcionando offline.
+- **Formato do QR Code**: segue a especificação pública do TSE (pares `CHAVE:VALOR`; `CARG` abre cada cargo; números de candidato como chave). O hash é verificado aceitando as variações de representação do hash anterior (bytes ou hexadecimal). Conferido com QR Code real de urna do 2º turno de 2022 (o hash é o SHA-512 do conteúdo sem o cabeçalho `QRBU/VRQR/VRCH`). Se um QR real for rejeitado por hash, o cálculo precisa ser ajustado no código (`src/domain/qrbu.ts`).
 - **Assinatura digital (campo `ASSI`)**: é armazenada, mas não é verificada contra a chave pública do TSE (previsto para a v3.0 no escopo).
 - **Nomes de candidatos e municípios**: o QR traz só números. Os nomes vêm de leituras por PDF/OCR e são reaproveitados automaticamente.
 - **Layout do BU impresso**: o parser de PDF/OCR é tolerante (rótulos sem acento e em qualquer caixa, valor na mesma linha ou na seguinte), mas foi testado com boletins de exemplo, não com toda variação real. A revisão antes de aceitar é a camada final de validação.
@@ -103,7 +83,6 @@ src/
   db/database.ts    IndexedDB (Dexie): leituras, historico_exclusoes, descartes, candidatos, config
   services/
     registro.ts       duplicidade, gravação, descarte, soft delete
-    tse.ts            consulta e conferência com o BU oficial do TSE
     capturaQr.ts      QR → captura validada
     pdf.ts | ocr.ts | imagem.ts   pdf.js, Tesseract.js, pré-processamento e detecção de QR
     exportacao.ts     CSV/JSON

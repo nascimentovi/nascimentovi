@@ -10,17 +10,6 @@ export default defineConfig(({ mode }) => ({
   base,
   // Sintaxe compatível com navegadores móveis mais antigos (Safari 14+/Chrome 87+).
   build: { target: ['es2020', 'safari14', 'chrome87'] },
-  // Em desenvolvimento, /tse/* é encaminhado ao site de resultados do TSE (evita bloqueio CORS).
-  server: {
-    proxy: {
-      '/tse': { target: 'https://resultados.tse.jus.br', changeOrigin: true, rewrite: (p) => p.replace(/^\/tse/, '') },
-    },
-  },
-  preview: {
-    proxy: {
-      '/tse': { target: 'https://resultados.tse.jus.br', changeOrigin: true, rewrite: (p) => p.replace(/^\/tse/, '') },
-    },
-  },
   plugins: [
     react(),
     // Câmera exige contexto seguro: `npm run dev:https` sobe com certificado local.

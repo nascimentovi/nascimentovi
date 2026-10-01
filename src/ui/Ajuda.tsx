@@ -9,7 +9,6 @@ export function Ajuda() {
           <h2>Como funciona</h2>
           <ol>
             <li><strong>📱 QR Code</strong>: aponte a câmera para o QR Code do Boletim de Urna. Se o boletim tiver vários QR Codes, leia todos (em qualquer ordem). O hash SHA-512 de cada parte é conferido antes de aceitar.</li>
-            <li><strong>🏛️ TSE</strong>: toda leitura de QR Code é conferida com o boletim oficial da seção publicado pelo TSE. Se não for possível consultar o TSE, a leitura não é aceita; se houver divergência, você decide se descarta ou contabiliza com alerta.</li>
             <li><strong>📄 PDF</strong>: envie o PDF do boletim. Se houver QR Code no arquivo, ele é usado; senão, o texto é extraído e você revisa os dados.</li>
             <li><strong>📸 Foto</strong>: fotografe o boletim impresso. Se houver QR Code na foto, ele é lido; senão, o OCR reconhece o texto e você confere os campos destacados.</li>
             <li><strong>⌨️ Manual</strong>: digite os dados quando nada mais funcionar.</li>
