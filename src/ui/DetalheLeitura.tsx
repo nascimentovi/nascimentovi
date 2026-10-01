@@ -80,6 +80,10 @@ export function DetalheLeitura({ id }: { id: string }) {
             {l.origem.qualidade_ocr != null && <><dt>Confiança</dt><dd>{l.origem.qualidade_ocr}%</dd></>}
             <dt>Correções manuais</dt><dd>{l.origem.correcoes_manuais ? 'Sim' : 'Não'}</dd>
             <dt>Hash QR conferido</dt><dd>{ok(v.checksum_valido)}</dd>
+            <dt>BU oficial TSE</dt>
+            <dd>
+              {!v.tse ? '— não consultado' : v.tse.status === 'conferido' ? `✅ conferido em ${dataHora(v.tse.consultado_em)}` : `❌ divergente (${v.tse.divergencias.length}) — contabilizado por decisão do operador`}
+            </dd>
             <dt>Totais consistentes</dt><dd>{ok(v.validacoes_estruturais.total_votos_consistente)}</dd>
             <dt>Comparecimento consistente</dt><dd>{ok(v.validacoes_estruturais.comparecimento_consistente)}</dd>
             <dt>Campos obrigatórios</dt><dd>{ok(v.validacoes_estruturais.campos_obrigatorios_completos)}</dd>
@@ -87,6 +91,15 @@ export function DetalheLeitura({ id }: { id: string }) {
             {v.assinatura_qr && <><dt>Assinatura/hash</dt><dd className="mono">{v.assinatura_qr}</dd></>}
             <dt>Fingerprint</dt><dd className="mono">{l.fingerprint}</dd>
           </dl>
+          {v.tse && v.tse.divergencias.length > 0 && (
+            <div className="rolagem" style={{ marginTop: 10 }}>
+              <table className="tabela">
+                <thead><tr><th>Divergência</th><th>QR</th><th>TSE</th></tr></thead>
+                <tbody>{v.tse.divergencias.map((d) => <tr key={d.campo} className="diverge"><td>{d.campo}</td><td className="n">{d.qr}</td><td className="n">{d.tse}</td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+          {v.tse && <p className="muted mono">{v.tse.url}</p>}
           {v.alertas.length > 0 && (
             <div className="msg aviso" style={{ marginTop: 10 }}>
               <strong>Alertas</strong>

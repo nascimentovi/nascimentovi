@@ -104,6 +104,7 @@ function montarLeitura(captura: Captura, preparo: Preparo): Leitura {
       codigo_carga: apenasDigitos(b.codigoCarga),
       validacoes_estruturais: preparo.validacao.estruturais,
       alertas: [...preparo.validacao.alertas, ...(captura.avisos ?? [])],
+      ...(captura.tse ? { tse: captura.tse } : {}),
     },
     confianca: captura.confianca,
     dados_brutos: captura.conteudoBruto ?? null,

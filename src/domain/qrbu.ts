@@ -197,6 +197,7 @@ export function interpretarQr(partes: ParteQr[]): BoletimQr {
     assinaturaQr: campos.ASSI || hashFinal || undefined,
     versaoSoftware: campos.VERS,
     fase: campos.FASE,
+    pleito: campos.PLEI ? numeroCanonico(campos.PLEI) : undefined,
   };
   // Alguns QR não trazem COMP/FALT no cabeçalho: deriva do total do 1º cargo.
   if (boletim.comparecimento === null && cargos[0]?.totalApurado != null) {
