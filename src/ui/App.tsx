@@ -3,7 +3,6 @@ import type { Captura } from '../domain/types';
 import { Ajuda } from './Ajuda';
 import { Auditoria } from './Auditoria';
 import { Fluxo, ir, useRota, type FluxoCtx } from './comum';
-import { Configuracoes } from './Configuracoes';
 import { Confirmacao } from './Confirmacao';
 import { Dashboard } from './Dashboard';
 import { DetalheLeitura } from './DetalheLeitura';
@@ -52,7 +51,6 @@ export function App() {
     case '/historico': tela = <Historico />; break;
     case '/leitura': tela = <DetalheLeitura id={decodeURIComponent(param ?? '')} />; break;
     case '/auditoria': tela = <Auditoria />; break;
-    case '/config': tela = <Configuracoes />; break;
     case '/ajuda': tela = <Ajuda />; break;
     default: tela = <Inicio />;
   }

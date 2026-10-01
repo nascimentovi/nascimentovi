@@ -85,7 +85,7 @@ async function buscar(url: string, tipo: 'json' | 'texto'): Promise<unknown> {
         ? 'Sem conexão com a internet. A leitura só pode ser aceita após a consulta ao TSE.'
         : (e as Error).name === 'AbortError'
           ? 'O site do TSE não respondeu a tempo.'
-          : 'Não foi possível acessar o site do TSE (rede indisponível ou acesso bloqueado pelo navegador — veja "Endereço do TSE" em Configurações).',
+          : 'Não foi possível acessar o site do TSE (rede indisponível ou acesso bloqueado pelo navegador).',
     );
   } finally {
     clearTimeout(t);

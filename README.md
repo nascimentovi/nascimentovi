@@ -21,7 +21,7 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 
 | Arquivo | Como usar |
 |---|---|
-| `qr-bu-exemplo.txt` | Leitor QR → "Digitar código" → colar o conteúdo (3 partes com hash válido). É um boletim fictício: desligue a conferência com o TSE em Configurações para testá-lo. |
+| `qr-bu-exemplo.txt` | Leitor QR → "Digitar código" → colar o conteúdo (3 partes com hash válido). É um boletim fictício: a conferência com o TSE vai recusá-lo, pois a seção não existe no site do TSE. |
 | `qr-bu-exemplo-3-partes.png` | Leitor QR → "QR de imagem", ou Foto |
 | `bu-exemplo-secao-0182.pdf` | Upload de PDF (é o mesmo boletim do QR, então é detectado como duplicata) |
 | `bu-exemplo-secao-0183.png` | Foto → Galeria (OCR de outra seção) |
@@ -32,7 +32,7 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 |---|---|
 | Leitor de QR Code | Câmera traseira com `BarcodeDetector` nativo, quando existe, ou `jsQR`. Lanterna, se o aparelho suportar. Aceita BU dividido em vários QR (`QRBU:i:n`), lidos em qualquer ordem. Fallback: digitar/colar o conteúdo ou ler QR de uma imagem. |
 | **Conferência com o TSE** | Toda leitura de QR Code (câmera, imagem, PDF ou foto) é conferida com o **boletim oficial da seção publicado pelo TSE** antes de ser contabilizada. Detalhes abaixo. |
-| Checksum / código verificador | A cadeia de **HASH SHA-512** de cada parte do QR é recalculada e conferida. Se não confere, a leitura é rejeitada. Há uma opção em Configurações para aceitar, marcando o registro como "não verificado". |
+| Checksum / código verificador | A cadeia de **HASH SHA-512** de cada parte do QR é recalculada e conferida. Se não confere, a leitura é rejeitada. |
 | Upload de PDF | `pdf.js` (build legacy). Valida tamanho (≤ 50 MB) e assinatura `%PDF-`. Se o PDF tiver QR Code, ele é lido e validado; senão, o texto é extraído e interpretado. PDF digitalizado (só imagem) → oferece OCR. |
 | Foto / OCR | `Tesseract.js` com modelo português **servido localmente**, sem CDN. Pré-processamento (auto-contraste + binarização de Otsu), rotação manual e correção EXIF. Antes do OCR, procura QR Code na foto. |
 | Revisão | PDF/OCR/manual passam por uma tela editável com confiança por campo: verde ≥ mínimo, amarelo < mínimo, vermelho < 50%, com os mínimos da seção 8.4 do escopo. Zona, local e seção abaixo de 95%, e qualquer campo abaixo de 50%, só são aceitos depois de marcados como conferidos ou editados. Confusões de OCR (`O→0`, `l→1`, `S→5`…) são corrigidas nos campos numéricos. |
@@ -58,7 +58,7 @@ O QR Code já traz tudo o que é preciso para localizar a seção no site de res
 | 🔴 Divergente | Mostra os campos diferentes (QR × TSE) e **não contabiliza**. O operador escolhe **Descartar** ou **Contabilizar mesmo assim**; nesse caso o registro fica com alerta no dashboard e na auditoria. |
 | ❌ Sem resposta (sem internet, BU ainda não publicado, site fora do ar) | **A leitura é bloqueada.** Há os botões "Tentar novamente" e "Descartar". |
 
-Em Configurações há a opção de desligar a conferência (para treinamento ou simulado) e um campo **Endereço do TSE**. Se o navegador bloquear o acesso direto ao site do TSE (CORS), aponte esse campo para um proxy que repasse as requisições para `resultados.tse.jus.br`. Em `npm run dev` e `npm run preview`, o caminho `/tse` já é um proxy pronto.
+A conferência é sempre obrigatória: o app não tem tela de configurações. Se o navegador bloquear o acesso direto ao site do TSE (CORS), o endereço de um proxy que repasse as requisições para `resultados.tse.jus.br` deve ser definido no código (`TSE_BASE_PADRAO`, em `src/services/tse.ts`). Em `npm run dev` e `npm run preview`, o caminho `/tse` já é um proxy pronto.
 
 > ⚠️ Os endereços e o formato dos arquivos do TSE foram implementados conforme a publicação de resultados de 2022, mas **não puderam ser testados contra o site real neste ambiente**, porque o acesso de rede ao TSE estava bloqueado. Os testes simulam as respostas. Faça uma leitura de teste com um QR Code real antes de usar em produção.
 
@@ -82,10 +82,10 @@ Na tela de duplicata, o usuário pode **Descartar** (fica registrado no históri
 
 ## Observações importantes
 
-- **Formato do QR Code**: segue a especificação pública do TSE (pares `CHAVE:VALOR`; `CARG` abre cada cargo; números de candidato como chave). O hash é verificado aceitando as variações de representação do hash anterior (bytes ou hexadecimal). Ainda **não foi testado com QR Codes reais de urna**. Se um QR real for rejeitado por hash, ative temporariamente "Aceitar QR Code cujo hash não confere" em Configurações: o registro fica marcado na auditoria.
+- **Formato do QR Code**: segue a especificação pública do TSE (pares `CHAVE:VALOR`; `CARG` abre cada cargo; números de candidato como chave). O hash é verificado aceitando as variações de representação do hash anterior (bytes ou hexadecimal). Ainda **não foi testado com QR Codes reais de urna**. Se um QR real for rejeitado por hash, o cálculo precisa ser ajustado no código (`src/domain/qrbu.ts`).
 - **Fluxo sem internet**: as leituras de QR Code dependem da conferência com o TSE, então precisam de internet. PDF sem QR, foto (OCR) e digitação continuam funcionando offline.
 - **Assinatura digital (campo `ASSI`)**: é armazenada, mas não é verificada contra a chave pública do TSE (previsto para a v3.0 no escopo).
-- **Nomes de candidatos e municípios**: o QR traz só números. Os nomes vêm de leituras por PDF/OCR, que são reaproveitados automaticamente, ou do cadastro em Configurações.
+- **Nomes de candidatos e municípios**: o QR traz só números. Os nomes vêm de leituras por PDF/OCR e são reaproveitados automaticamente.
 - **Layout do BU impresso**: o parser de PDF/OCR é tolerante (rótulos sem acento e em qualquer caixa, valor na mesma linha ou na seguinte), mas foi testado com boletins de exemplo, não com toda variação real. A revisão antes de aceitar é a camada final de validação.
 - **Compatibilidade**: o build é gerado para Safari 14+ e Chrome 87+. Versões muito antigas (iOS 12) não suportam partes do pdf.js e do Tesseract.
 
@@ -108,6 +108,6 @@ src/
     pdf.ts | ocr.ts | imagem.ts   pdf.js, Tesseract.js, pré-processamento e detecção de QR
     exportacao.ts     CSV/JSON
   ui/               telas React (início, QR, PDF, foto, revisão, confirmação/duplicata,
-                    dashboard, histórico, detalhe, auditoria, configurações, ajuda)
+                    dashboard, histórico, detalhe, auditoria, ajuda)
 scripts/copy-ocr-assets.mjs   copia o worker, o núcleo WASM e o modelo `por` do Tesseract para public/
 ```

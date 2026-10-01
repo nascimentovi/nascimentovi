@@ -113,7 +113,7 @@ export function Dashboard() {
           <Kpi
             rotulo="Urnas lidas"
             valor={esperadas ? `${formatarNumero(tot.urnas)} / ${formatarNumero(esperadas)}` : formatarNumero(tot.urnas)}
-            sub={esperadas ? `${formatarPct(tot.urnas / esperadas)} das urnas` : 'Defina o total em Configurações'}
+            sub={esperadas ? `${formatarPct(tot.urnas / esperadas)} das urnas` : undefined}
             medidor={esperadas ? tot.urnas / esperadas : undefined}
           />
           <Kpi rotulo="Eleitores aptos" valor={formatarNumero(tot.eleitoresAptos)} />
@@ -146,11 +146,10 @@ export function Dashboard() {
           tot.cargos.map((c) => <CartaoCargo key={c.cargo} c={c} />)
         )}
 
+        <button className="btn primario" onClick={() => ir('/')}>➕ Ler próxima</button>
         <div className="acoes">
-          <button className="btn primario" onClick={() => ir('/')}>➕ Ler próxima</button>
           <button className="btn" onClick={() => ir('/historico')}>🗂️ Histórico</button>
           <button className="btn" onClick={() => ir('/auditoria')}>🛡️ Auditoria</button>
-          <button className="btn" onClick={() => ir('/config')}>👤 Nomes de candidatos</button>
         </div>
       </main>
     </>

@@ -18,7 +18,7 @@ export function Inicio() {
 
   return (
     <>
-      <Topo titulo="Contabilizar votos" semVoltar direita={<button onClick={() => ir('/config')} aria-label="Configurações">⚙️</button>} />
+      <Topo titulo="Contabilizar votos" semVoltar />
       <main className="conteudo">
         <div className="msg info">
           <strong>{formatarNumero(resumo?.urnas ?? 0)}</strong> urnas contabilizadas · <strong>{formatarNumero(resumo?.votantes ?? 0)}</strong> votantes
@@ -37,9 +37,8 @@ export function Inicio() {
           <button className="btn primario" onClick={() => ir('/dashboard')}>📊 Dashboard</button>
           <button className="btn" onClick={() => ir('/historico')}>🗂️ Histórico</button>
         </div>
-        <div className="acoes">
+        <div className="acoes uma">
           <button className="btn" onClick={() => ir('/auditoria')}>🛡️ Auditoria</button>
-          <button className="btn" onClick={() => ir('/config')}>⚙️ Configurações</button>
         </div>
       </main>
     </>
