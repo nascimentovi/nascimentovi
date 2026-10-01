@@ -59,12 +59,13 @@ describe('leitura do QR Code com dados públicos do TSE', () => {
     expect(caminhoComplemento(campos)).toBe(CAMINHO_COMP);
   });
 
-  it('verifica a assinatura e completa os nomes', async () => {
+  it('verifica a assinatura e completa os nomes dos candidatos', async () => {
     servidor({ [CAMINHO_CHAVE]: hexParaBytes(CHAVE_PUBLICA_MANUAL), [CAMINHO_COMP]: COMPLEMENTO });
     const c = await capturaDeQr(montarDeTextos([QR_MANUAL_SIMPLES]));
     expect(c.checksumValido).toBe(true);
     expect(c.assinaturaValida).toBe(true);
-    expect(c.boletim.municipio).toBe('RIO BRANCO');
+    // O nome do município vem da tabela oficial de códigos TSE (1120 = Acrelândia/AC).
+    expect(c.boletim.municipio).toBe('ACRELÂNDIA');
     const pref = c.boletim.cargos.find((x) => x.cargo === 'PREFEITO')!;
     expect(pref.candidatos[0]).toMatchObject({ numero: '92', nome: 'FORRÓ (PRM)', votos: 1 });
     const ver = c.boletim.cargos.find((x) => x.cargo === 'VEREADOR')!;
@@ -94,7 +95,7 @@ describe('leitura do QR Code com dados públicos do TSE', () => {
     const c = await capturaDeQr(montarDeTextos([QR_MANUAL_SIMPLES]));
     expect(f).not.toHaveBeenCalled();
     expect(c.assinaturaValida).toBe(true);
-    expect(c.boletim.municipio).toBe('RIO BRANCO');
+    expect(c.boletim.cargos.find((x) => x.cargo === 'PREFEITO')!.candidatos[0].nome).toBe('FORRÓ (PRM)');
   });
 
   it('ignora complemento inválido', () => {

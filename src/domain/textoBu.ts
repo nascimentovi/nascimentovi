@@ -4,6 +4,7 @@
  * cada campo, para destacar na tela de revisão o que precisa ser conferido.
  */
 import { cargoDoTitulo } from './cargos';
+import { municipioPorCodigoTse } from './municipios';
 import {
   apenasDigitos,
   dataIso,
@@ -95,7 +96,7 @@ export function interpretarTextoBu(linhas: LinhaTexto[], opcoes: { ocr: boolean 
     return c?.valor ?? '';
   };
 
-  // Município: "Município 62910 - CONCHAL" ou "Município: CONCHAL"
+  // Município: "Município 63452 - CONCHAL" ou "Município: CONCHAL"
   let municipio = '';
   let codigoMunicipio: string | undefined;
   for (const l of norm) {
@@ -106,6 +107,13 @@ export function interpretarTextoBu(linhas: LinhaTexto[], opcoes: { ocr: boolean 
       confianca.municipio = Math.round(l.confianca);
       break;
     }
+  }
+
+  // Com o código TSE do município, o nome vem da tabela oficial (mais confiável que o texto lido).
+  const oficial = municipioPorCodigoTse(codigoMunicipio);
+  if (oficial) {
+    municipio = oficial.nome;
+    confianca.municipio = Math.max(confianca.municipio ?? 0, 99);
   }
 
   const zona = set('zona', campoNumerico(/ZONA(\s+ELEITORAL)?\s*:?/));

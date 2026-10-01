@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { comZeros, dataBr, formatarNumero } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type Captura, type Leitura } from '../domain/types';
-import { aprenderMunicipio } from '../services/capturaQr';
 import { prepararCaptura, registrarDescarte, salvarCaptura, type Preparo } from '../services/registro';
 import { dataHora, ir, Modal, ROTA_METODO, sinalizar, Topo, useFluxo } from './comum';
 import { TabelaComparacao } from './TabelaComparacao';
@@ -33,7 +32,6 @@ export function Confirmacao() {
   async function salvar(c: Captura, preparo: Preparo, substituirId?: string) {
     try {
       const leitura = await salvarCaptura(c, preparo, { substituirId });
-      await aprenderMunicipio(c.boletim);
       sinalizar('ok');
       limpar();
       setEstado({ fase: 'salvo', leitura, alertas: leitura.validacao.alertas });

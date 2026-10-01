@@ -10,7 +10,7 @@ describe('interpretação de texto do BU (PDF/OCR)', () => {
     const b = r.boletim;
     expect(b).toMatchObject({
       municipio: 'CONCHAL',
-      codigoMunicipio: '62910',
+      codigoMunicipio: '63452',
       zona: '75',
       local: '1015',
       secao: '182',

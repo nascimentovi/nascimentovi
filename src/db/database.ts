@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { municipioPorCodigoTse } from '../domain/municipios';
 import type { CadastroCandidato, Exclusao, Leitura, TipoEntrada } from '../domain/types';
 
 /** Tentativas descartadas (duplicatas, erros de validação) para auditoria. */
@@ -38,6 +39,21 @@ export class BancoApuracao extends Dexie {
       candidatos: 'chave, cargo',
       config: 'chave',
     });
+    // v2: leituras antigas de QR guardavam "MUNICÍPIO <código>"; passa a usar o nome oficial.
+    this.version(2).upgrade((tx) =>
+      tx
+        .table('leituras')
+        .toCollection()
+        .modify((l: Leitura) => {
+          if (!l.municipio || l.municipio.startsWith('MUNICÍPIO ')) {
+            const m = municipioPorCodigoTse(l.boletim?.codigoMunicipio);
+            if (m) {
+              l.municipio = m.nome;
+              l.boletim.municipio = m.nome;
+            }
+          }
+        }),
+    );
   }
 }
 

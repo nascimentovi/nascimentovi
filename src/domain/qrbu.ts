@@ -5,7 +5,7 @@
  * espaço, por exemplo:
  *
  *   QRBU:1:1 VRQR:1.5 VRCH:20220930 ORIG:VOTA ORLC:LEG PROC:406 DTPL:20221030
- *   PLEI:407 TURN:2 FASE:O UNFE:SP MUNI:62910 ZONA:75 SECA:182 IDUE:1787323
+ *   PLEI:407 TURN:2 FASE:O UNFE:SP MUNI:63452 ZONA:75 SECA:182 IDUE:1787323
  *   IDCA:666070534576779579335458 VERS:8.26.0.0 LOCA:1015 APTS:325 COMP:278
  *   FALT:47 ... IDEL:545 CARG:1 TIPO:0 VERC:202209 13:45 22:225 APTA:325
  *   NOMI:270 BRAN:5 NULO:3 TOTC:278 HASH:... ASSI:...
@@ -15,6 +15,7 @@
  * funciona como código verificador da integridade do conteúdo.
  */
 import { cargoCanonico } from './cargos';
+import { nomeMunicipioTse } from './municipios';
 import { sha512Hex } from './hash';
 import { apenasDigitos, dataIso, numeroCanonico } from './normalizar';
 import type { Boletim, ResultadoCargo } from './types';
@@ -191,7 +192,7 @@ export function interpretarQr(partes: ParteQr[]): BoletimQr {
   const aptos = campos.APTO ?? campos.APTS ?? campos.APTA;
   const boletim: Boletim = {
     uf: campos.UNFE,
-    municipio: campos.MUNI ? `MUNICÍPIO ${campos.MUNI}` : '',
+    municipio: nomeMunicipioTse(campos.MUNI),
     codigoMunicipio: campos.MUNI ? numeroCanonico(campos.MUNI) : undefined,
     zona: numeroCanonico(campos.ZONA),
     local: numeroCanonico(campos.LOCA),

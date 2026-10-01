@@ -4,7 +4,6 @@ import { db, lerConfig } from '../db/database';
 import { agregar, aplicarFiltro, type FiltroLeituras, type ResultadoAgregadoCargo } from '../domain/agregacao';
 import { comZeros, formatarNumero, formatarPct } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type TipoEntrada } from '../domain/types';
-import { CFG_MUNICIPIOS, nomeMunicipio } from '../services/capturaQr';
 import { descreverUrna } from '../services/registro';
 
 function Kpi({ rotulo, valor, sub, medidor }: { rotulo: string; valor: string; sub?: string; medidor?: number }) {
@@ -66,13 +65,9 @@ export function PainelApuracao() {
   const leituras = useLiveQuery(() => db.leituras.toArray(), []);
   const cadastro = useLiveQuery(() => db.candidatos.toArray(), []);
   const esperadas = useLiveQuery(() => lerConfig<number>('urnasEsperadas', 0), []);
-  const municipios = useLiveQuery(() => lerConfig<Record<string, string>>(CFG_MUNICIPIOS, {}), []);
   const [filtro, setFiltro] = useState<FiltroLeituras>({});
 
-  const ativas = useMemo(
-    () => (leituras ?? []).filter((l) => l.status === 'ativo').map((l) => ({ ...l, municipio: nomeMunicipio(l, municipios ?? {}) })),
-    [leituras, municipios],
-  );
+  const ativas = useMemo(() => (leituras ?? []).filter((l) => l.status === 'ativo'), [leituras]);
   const opcoes = useMemo(() => ({
     municipios: [...new Set(ativas.map((l) => l.municipio).filter(Boolean))].sort(),
     zonas: [...new Set(ativas.map((l) => l.zona_eleitoral))].sort((a, b) => Number(a) - Number(b)),

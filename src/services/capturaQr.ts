@@ -1,10 +1,7 @@
-import { gravarConfig, lerConfig } from '../db/database';
 import { verificarAssinaturaBu } from '../domain/assinatura';
 import { interpretarQr, MontadorQr, separarPartes, validarHashes } from '../domain/qrbu';
-import type { Boletim, Captura, Leitura, TipoEntrada } from '../domain/types';
+import type { Captura, TipoEntrada } from '../domain/types';
 import { obterChavePublica, obterComplemento } from './tseQr';
-
-export const CFG_MUNICIPIOS = 'municipios';
 
 export class ErroCaptura extends Error {}
 
@@ -46,17 +43,14 @@ export async function capturaDeQr(montador: MontadorQr, tipo: TipoEntrada = 'qr_
   }
 
   if (comp) {
-    if (comp.municipio) boletim.municipio = comp.municipio;
+    // Município fora da tabela (ex.: exterior): usa o nome do arquivo do TSE.
+    if (comp.municipio && boletim.municipio.startsWith('MUNICÍPIO ')) boletim.municipio = comp.municipio;
     for (const c of boletim.cargos) {
       for (const k of c.candidatos) {
         const nome = comp.candidatos[`${c.cargo}|${Number(k.numero)}`];
         if (nome && !k.legenda) k.nome = nome;
       }
     }
-  }
-  const municipios = await lerConfig<Record<string, string>>(CFG_MUNICIPIOS, {});
-  if (!comp?.municipio && boletim.codigoMunicipio && municipios[boletim.codigoMunicipio]) {
-    boletim.municipio = municipios[boletim.codigoMunicipio];
   }
   if (boletim.fase && boletim.fase !== 'O') {
     avisos.push(`Boletim de urna em fase "${boletim.fase === 'S' ? 'simulado' : boletim.fase === 'T' ? 'treinamento' : boletim.fase}" (não oficial).`);
@@ -84,21 +78,4 @@ export function montarDeTextos(textos: string[]): MontadorQr {
     }
   }
   return m;
-}
-
-/**
- * PDF/OCR trazem código e nome do município ("62910 - CONCHAL"); o QR traz só
- * o código. Guarda a associação para exibir o mesmo nome nas duas origens.
- */
-export async function aprenderMunicipio(b: Boletim): Promise<void> {
-  if (!b.codigoMunicipio || !b.municipio || b.municipio.startsWith('MUNICÍPIO ')) return;
-  const mapa = await lerConfig<Record<string, string>>(CFG_MUNICIPIOS, {});
-  if (mapa[b.codigoMunicipio]) return;
-  await gravarConfig(CFG_MUNICIPIOS, { ...mapa, [b.codigoMunicipio]: b.municipio });
-}
-
-/** Nome do município para exibição/filtro, resolvendo o código do QR pelo cadastro. */
-export function nomeMunicipio(l: Leitura, mapa: Record<string, string>): string {
-  const cod = l.boletim.codigoMunicipio;
-  return (cod && mapa[cod]) || l.municipio;
 }
