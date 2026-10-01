@@ -70,9 +70,11 @@ export function PainelApuracao() {
   const ativas = useMemo(() => (leituras ?? []).filter((l) => l.status === 'ativo'), [leituras]);
   const opcoes = useMemo(() => ({
     municipios: [...new Set(ativas.map((l) => l.municipio).filter(Boolean))].sort(),
-    zonas: [...new Set(ativas.map((l) => l.zona_eleitoral))].sort((a, b) => Number(a) - Number(b)),
-    locais: [...new Set(ativas.filter((l) => !filtro.zona || l.zona_eleitoral === filtro.zona).map((l) => l.local_votacao))].sort((a, b) => Number(a) - Number(b)),
-  }), [ativas, filtro.zona]);
+    locais: [...new Set(ativas.filter((l) => !filtro.municipio || l.municipio === filtro.municipio).map((l) => l.local_votacao).filter(Boolean))].sort((a, b) => Number(a) - Number(b)),
+    secoes: [...new Set(ativas
+      .filter((l) => (!filtro.municipio || l.municipio === filtro.municipio) && (!filtro.local || l.local_votacao === filtro.local))
+      .map((l) => l.secao))].sort((a, b) => Number(a) - Number(b)),
+  }), [ativas, filtro.municipio, filtro.local]);
   // Registros excluídos entram só como fonte de nomes de candidatos (agregar() ignora seus votos).
   const tot = useMemo(
     () => agregar([...aplicarFiltro(ativas, filtro), ...(leituras ?? []).filter((l) => l.status !== 'ativo')], cadastro ?? []),
@@ -85,18 +87,18 @@ export function PainelApuracao() {
   return (
     <>
         {ativas.length > 0 && (
-          <div className="filtros" aria-label="Filtros">
-            <select className="ent" value={filtro.municipio ?? ''} onChange={(e) => setFiltro({ ...filtro, municipio: e.target.value || undefined })} aria-label="Município">
+          <div className="filtros duas" aria-label="Filtros">
+            <select className="ent" value={filtro.municipio ?? ''} onChange={(e) => setFiltro({ municipio: e.target.value || undefined })} aria-label="Município">
               <option value="">Município</option>
               {opcoes.municipios.map((m) => <option key={m}>{m}</option>)}
             </select>
-            <select className="ent" value={filtro.zona ?? ''} onChange={(e) => setFiltro({ ...filtro, zona: e.target.value || undefined, local: undefined })} aria-label="Zona">
-              <option value="">Zona</option>
-              {opcoes.zonas.map((z) => <option key={z} value={z}>{comZeros(z)}</option>)}
+            <select className="ent" value={filtro.local ?? ''} onChange={(e) => setFiltro({ ...filtro, local: e.target.value || undefined, secao: undefined })} aria-label="Local de votação">
+              <option value="">Local de votação</option>
+              {opcoes.locais.map((z) => <option key={z} value={z}>Local {comZeros(z)}</option>)}
             </select>
-            <select className="ent" value={filtro.local ?? ''} onChange={(e) => setFiltro({ ...filtro, local: e.target.value || undefined })} aria-label="Local">
-              <option value="">Local</option>
-              {opcoes.locais.map((z) => <option key={z} value={z}>{comZeros(z)}</option>)}
+            <select className="ent" value={filtro.secao ?? ''} onChange={(e) => setFiltro({ ...filtro, secao: e.target.value || undefined })} aria-label="Seção">
+              <option value="">Seção</option>
+              {opcoes.secoes.map((z) => <option key={z} value={z}>Seção {comZeros(z)}</option>)}
             </select>
           </div>
         )}

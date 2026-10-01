@@ -40,8 +40,8 @@ export interface Totais {
 
 export interface FiltroLeituras {
   municipio?: string;
-  zona?: string;
   local?: string;
+  secao?: string;
   de?: string; // ISO datetime
   ate?: string;
 }
@@ -49,8 +49,8 @@ export interface FiltroLeituras {
 export function aplicarFiltro(leituras: Leitura[], f: FiltroLeituras): Leitura[] {
   return leituras.filter((l) => {
     if (f.municipio && l.municipio !== f.municipio) return false;
-    if (f.zona && numeroCanonico(l.zona_eleitoral) !== numeroCanonico(f.zona)) return false;
     if (f.local && numeroCanonico(l.local_votacao) !== numeroCanonico(f.local)) return false;
+    if (f.secao && numeroCanonico(l.secao) !== numeroCanonico(f.secao)) return false;
     if (f.de && l.timestamp_leitura < f.de) return false;
     if (f.ate && l.timestamp_leitura > f.ate) return false;
     return true;

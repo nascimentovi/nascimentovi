@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agregar } from './agregacao';
+import { agregar, aplicarFiltro } from './agregacao';
 import type { Boletim, Leitura } from './types';
 
 function leitura(id: string, status: Leitura['status'], b: Partial<Boletim>): Leitura {
@@ -43,5 +43,13 @@ describe('agregação do dashboard', () => {
   it('cadastro de candidatos tem prioridade sobre nomes lidos', () => {
     const t = agregar([leitura('1', 'ativo', { cargos: [pres(1, 2, 'LIDO')] })], [{ chave: 'PRESIDENTE|13', cargo: 'PRESIDENTE', numero: '13', nome: 'CADASTRADO' }]);
     expect(t.cargos[0].candidatos.find((x) => x.numero === '13')?.nome).toBe('CADASTRADO');
+  });
+
+  it('filtra por local de votação e seção', () => {
+    const ls = [leitura('10', 'ativo', {}), leitura('11', 'ativo', {}), leitura('12', 'ativo', {})];
+    ls[2] = { ...ls[2], local_votacao: '2' };
+    expect(aplicarFiltro(ls, { local: '0001' }).map((l) => l.secao)).toEqual(['10', '11']);
+    expect(aplicarFiltro(ls, { local: '1', secao: '0011' }).map((l) => l.secao)).toEqual(['11']);
+    expect(aplicarFiltro(ls, { secao: '12' }).map((l) => l.local_votacao)).toEqual(['2']);
   });
 });
