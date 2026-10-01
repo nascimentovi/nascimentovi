@@ -5,6 +5,7 @@ import { comZeros, dataBr, formatarCarga, formatarNumero } from '../domain/norma
 import { ICONE_ENTRADA, ROTULO_ENTRADA } from '../domain/types';
 import { dataHora, Topo } from './comum';
 import { ExcluirModal } from './ExcluirModal';
+import { localDaLeitura } from '../domain/locais';
 
 const STATUS_EVENTO: Record<string, string> = {
   aceito: '✅ Aceito',
@@ -28,6 +29,7 @@ export function DetalheLeitura({ id }: { id: string }) {
     );
   }
   const b = l.boletim;
+  const info = localDaLeitura(l);
   const v = l.validacao;
 
   return (
@@ -44,6 +46,7 @@ export function DetalheLeitura({ id }: { id: string }) {
             <dt>Município</dt><dd>{b.municipio || '—'}{b.uf ? ` / ${b.uf}` : ''}</dd>
             <dt>Zona</dt><dd>{comZeros(b.zona)}</dd>
             <dt>Local</dt><dd>{comZeros(b.local)}</dd>
+            {info && <><dt>Escola</dt><dd>{info.escola}</dd><dt>Endereço</dt><dd>{info.endereco}</dd><dt>Bairro</dt><dd>{info.bairro}</dd></>}
             <dt>Seção</dt><dd>{comZeros(b.secao)}</dd>
             <dt>Código UE</dt><dd>{b.codigoUe || '—'}</dd>
             <dt>Data votação</dt><dd>{b.dataVotacao ? dataBr(b.dataVotacao) : '—'}{b.turno ? ` (${b.turno}º turno)` : ''}</dd>

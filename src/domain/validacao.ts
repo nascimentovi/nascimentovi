@@ -1,3 +1,4 @@
+import { identificarLocal } from './locais';
 import type { Boletim, ValidacoesEstruturais } from './types';
 
 export interface ResultadoValidacao {
@@ -22,6 +23,11 @@ export function validarBoletim(b: Boletim): ResultadoValidacao {
   if (b.comparecimento === null) erros.push('Comparecimento não informado.');
 
   const camposOk = erros.length === 0;
+
+  const info = identificarLocal(b.codigoMunicipio, b.local, b.secao);
+  if (info && !info.secaoConfere) {
+    alertas.push(`Seção ${b.secao} não consta da relação de seções do local ${info.local} (${info.escola}).`);
+  }
 
   let comparecimentoOk = true;
   if (b.eleitoresAptos !== null && b.comparecimento !== null) {

@@ -5,6 +5,7 @@ import { comZeros, formatarNumero, semAcento } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type Leitura, type TipoEntrada } from '../domain/types';
 import { dataHora, ir, Topo } from './comum';
 import { ExcluirModal } from './ExcluirModal';
+import { localDaLeitura } from '../domain/locais';
 
 export function Historico() {
   const leituras = useLiveQuery(() => db.leituras.orderBy('timestamp_leitura').reverse().toArray(), []);
@@ -57,6 +58,7 @@ export function Historico() {
               Seção {comZeros(l.secao)} • {dataHora(l.timestamp_leitura)} • {ICONE_ENTRADA[l.tipo_entrada]} {ROTULO_ENTRADA[l.tipo_entrada]}
               {l.municipio && <> • {l.municipio}</>}
             </div>
+            {localDaLeitura(l) && <div className="muted">🏫 {localDaLeitura(l)!.escola} • 📍 {localDaLeitura(l)!.bairro}</div>}
             {l.status === 'ativo' ? (
               <div>
                 {formatarNumero(l.boletim.comparecimento)} votantes

@@ -4,6 +4,7 @@ import { ICONE_ENTRADA, ROTULO_ENTRADA, type Captura, type Leitura } from '../do
 import { prepararCaptura, registrarDescarte, salvarCaptura, type Preparo } from '../services/registro';
 import { dataHora, ir, Modal, ROTA_METODO, sinalizar, Topo, useFluxo } from './comum';
 import { TabelaComparacao } from './TabelaComparacao';
+import { localDaLeitura } from '../domain/locais';
 
 type Estado =
   | { fase: 'verificando' }
@@ -191,6 +192,7 @@ export function Confirmacao() {
         <div className="msg ok" role="status">
           <strong>Urna #{comZeros(l.secao)} contabilizada</strong> — Zona {comZeros(l.zona_eleitoral)} | Local {comZeros(l.local_votacao)}
           {b.dataVotacao && <> · {dataBr(b.dataVotacao)}</>}
+          {localDaLeitura(l) && <><br />🏫 {localDaLeitura(l)!.escola} • 📍 {localDaLeitura(l)!.bairro}</>}
         </div>
         {l.validacao.checksum_valido === true && <div className="msg ok">🔐 Código verificador (hash) do QR Code conferido.</div>}
         {l.validacao.assinatura_valida === true && <div className="msg ok">✍️ Assinatura digital do TSE válida.</div>}

@@ -6,6 +6,7 @@ import { dataIso, inteiroOuNulo, numeroCanonico, sanitizarTexto } from '../domai
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type Boletim, type Captura, type MapaConfianca } from '../domain/types';
 import { validarBoletim } from '../domain/validacao';
 import { ir, Topo, useFluxo } from './comum';
+import { identificarLocal } from '../domain/locais';
 
 /* ---------------- Modelo editável (strings para os inputs) ---------------- */
 
@@ -143,6 +144,7 @@ export function Revisao() {
 
   const boletim = useMemo(() => (edit && captura ? paraBoletim(edit, captura.boletim) : null), [edit, captura]);
   const validacao = useMemo(() => (boletim ? validarBoletim(boletim) : null), [boletim]);
+  const infoLocal = boletim ? identificarLocal(boletim.codigoMunicipio, boletim.local, boletim.secao) : null;
   const nomesCadastro = useMemo(() => new Map((cadastro ?? []).map((c) => [`${c.cargo}|${c.numero}`, c.nome])), [cadastro]);
 
   if (!edit || !captura || !boletim || !validacao) return <Topo titulo="Revisar dados" />;
@@ -216,6 +218,13 @@ export function Revisao() {
             {campo({ k: "local", rotulo: "Local", modo: "numeric", valor: edit.local, aoMudar: (v) => atualizar((e) => (e.local = v)) })}
             {campo({ k: "secao", rotulo: "Seção", modo: "numeric", valor: edit.secao, aoMudar: (v) => atualizar((e) => (e.secao = v)) })}
           </div>
+          {infoLocal && (
+            <p className="muted" style={{ margin: '8px 0 0' }}>
+              🏫 {infoLocal.escola} (local {infoLocal.local}) • 📍 {infoLocal.bairro}
+              {infoLocal.deduzidoPelaSecao && ' — local identificado pela seção'}
+              {!infoLocal.secaoConfere && ' — ⚠️ a seção não pertence a este local'}
+            </p>
+          )}
           <div className="grade" style={{ marginTop: 10 }}>
             {campo({ k: "codigoUe", rotulo: "Código UE", modo: "numeric", valor: edit.codigoUe, aoMudar: (v) => atualizar((e) => (e.codigoUe = v)) })}
             {campo({ k: "codigoCarga", rotulo: "Código da carga", modo: "numeric", valor: edit.codigoCarga, aoMudar: (v) => atualizar((e) => (e.codigoCarga = v)) })}

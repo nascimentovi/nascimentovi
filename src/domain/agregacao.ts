@@ -1,4 +1,5 @@
 import { compararCargos } from './cargos';
+import { localDaLeitura } from './locais';
 import { numeroCanonico } from './normalizar';
 import type { CadastroCandidato, Leitura } from './types';
 
@@ -40,6 +41,7 @@ export interface Totais {
 
 export interface FiltroLeituras {
   municipio?: string;
+  bairro?: string;
   local?: string;
   secao?: string;
   de?: string; // ISO datetime
@@ -49,6 +51,7 @@ export interface FiltroLeituras {
 export function aplicarFiltro(leituras: Leitura[], f: FiltroLeituras): Leitura[] {
   return leituras.filter((l) => {
     if (f.municipio && l.municipio !== f.municipio) return false;
+    if (f.bairro && localDaLeitura(l)?.bairro !== f.bairro) return false;
     if (f.local && numeroCanonico(l.local_votacao) !== numeroCanonico(f.local)) return false;
     if (f.secao && numeroCanonico(l.secao) !== numeroCanonico(f.secao)) return false;
     if (f.de && l.timestamp_leitura < f.de) return false;

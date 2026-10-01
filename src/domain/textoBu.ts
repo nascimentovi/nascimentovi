@@ -4,7 +4,7 @@
  * cada campo, para destacar na tela de revisão o que precisa ser conferido.
  */
 import { cargoDoTitulo } from './cargos';
-import { municipioPorCodigoTse } from './municipios';
+import { codigoPorNomeUnico, municipioPorCodigoTse } from './municipios';
 import {
   apenasDigitos,
   dataIso,
@@ -110,6 +110,7 @@ export function interpretarTextoBu(linhas: LinhaTexto[], opcoes: { ocr: boolean 
   }
 
   // Com o código TSE do município, o nome vem da tabela oficial (mais confiável que o texto lido).
+  if (!codigoMunicipio && municipio) codigoMunicipio = codigoPorNomeUnico(municipio) ?? undefined;
   const oficial = municipioPorCodigoTse(codigoMunicipio);
   if (oficial) {
     municipio = oficial.nome;

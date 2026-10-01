@@ -181,6 +181,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .filtros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .filtros.duas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .filtros.duas > :first-child { grid-column: 1 / -1; }
+.filtros.duas.com-bairro > :first-child { grid-column: auto; }
+.filtros.duas > .largo { grid-column: 1 / -1; }
 .filtros .ent { min-height: 38px; font-size: 0.88rem; }
 
 /* ---------- Histórico ---------- */
