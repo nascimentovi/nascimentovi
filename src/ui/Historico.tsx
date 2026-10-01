@@ -73,10 +73,7 @@ export function Historico() {
           </article>
         ))}
 
-        <div className="acoes">
-          <button className="btn" onClick={() => ir('/')}>Início</button>
-          <button className="btn primario" onClick={() => ir('/dashboard')}>📊 Dashboard</button>
-        </div>
+        <button className="btn primario" onClick={() => ir('/')}>📊 Voltar à apuração</button>
         {excluir && <ExcluirModal leitura={excluir} aoFechar={() => setExcluir(null)} />}
       </main>
     </>

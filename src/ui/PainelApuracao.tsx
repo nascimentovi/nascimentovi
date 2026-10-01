@@ -6,7 +6,6 @@ import { comZeros, formatarNumero, formatarPct } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type TipoEntrada } from '../domain/types';
 import { CFG_MUNICIPIOS, nomeMunicipio } from '../services/capturaQr';
 import { descreverUrna } from '../services/registro';
-import { ir, Topo } from './comum';
 
 function Kpi({ rotulo, valor, sub, medidor }: { rotulo: string; valor: string; sub?: string; medidor?: number }) {
   return (
@@ -62,7 +61,8 @@ function CartaoCargo({ c }: { c: ResultadoAgregadoCargo }) {
   );
 }
 
-export function Dashboard() {
+/** Painel de apuração (totais, filtros e resultados por cargo), exibido na tela inicial. */
+export function PainelApuracao() {
   const leituras = useLiveQuery(() => db.leituras.toArray(), []);
   const cadastro = useLiveQuery(() => db.candidatos.toArray(), []);
   const esperadas = useLiveQuery(() => lerConfig<number>('urnasEsperadas', 0), []);
@@ -84,13 +84,11 @@ export function Dashboard() {
     [ativas, filtro, cadastro, leituras],
   );
 
-  if (!leituras) return <Topo titulo="Dashboard de apuração" />;
+  if (!leituras) return null;
   const filtrado = Object.values(filtro).some(Boolean);
 
   return (
     <>
-      <Topo titulo="Dashboard de apuração" />
-      <main className="conteudo">
         {ativas.length > 0 && (
           <div className="filtros" aria-label="Filtros">
             <select className="ent" value={filtro.municipio ?? ''} onChange={(e) => setFiltro({ ...filtro, municipio: e.target.value || undefined })} aria-label="Município">
@@ -146,12 +144,6 @@ export function Dashboard() {
           tot.cargos.map((c) => <CartaoCargo key={c.cargo} c={c} />)
         )}
 
-        <button className="btn primario" onClick={() => ir('/')}>➕ Ler próxima</button>
-        <div className="acoes">
-          <button className="btn" onClick={() => ir('/historico')}>🗂️ Histórico</button>
-          <button className="btn" onClick={() => ir('/auditoria')}>🛡️ Auditoria</button>
-        </div>
-      </main>
     </>
   );
 }

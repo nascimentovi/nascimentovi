@@ -224,7 +224,7 @@ export function Confirmacao() {
         </section>
         <button className="btn primario" onClick={() => ir(metodo)}>➡️ Ler próximo</button>
         <div className="acoes">
-          <button className="btn" onClick={() => ir('/dashboard')}>📊 Dashboard</button>
+          <button className="btn" onClick={() => ir('/')}>📊 Apuração</button>
           <button className="btn" onClick={() => ir('/historico')}>🗂️ Histórico</button>
         </div>
       </main>

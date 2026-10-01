@@ -28,15 +28,15 @@ export function voltar(padrao = '/'): void {
 export const ROTA_METODO: Record<TipoEntrada, string> = {
   qr_code: '/qr',
   pdf: '/pdf',
-  ocr: '/foto',
-  manual: '/manual',
+  ocr: '/pdf', // OCR só ocorre em PDF digitalizado
+  manual: '/',
 };
 
 /* ---------------- Fluxo de captura em andamento ---------------- */
 
 export interface FluxoCtx {
   pendente: Captura | null;
-  /** Envia uma captura: PDF/OCR/manual passam pela revisão; QR vai direto à confirmação. */
+  /** Envia uma captura: PDF passa pela revisão; QR vai direto à confirmação. */
   enviar: (c: Captura, revisar: boolean) => void;
   limpar: () => void;
   toast: (msg: string) => void;

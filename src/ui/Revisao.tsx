@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
-import { db, lerConfig } from '../db/database';
+import { db } from '../db/database';
 import { cargoCanonico, ORDEM_CARGOS } from '../domain/cargos';
 import { dataIso, inteiroOuNulo, numeroCanonico, sanitizarTexto } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type Boletim, type Captura, type MapaConfianca } from '../domain/types';
 import { validarBoletim } from '../domain/validacao';
-import { ir, ROTA_METODO, Topo, useFluxo } from './comum';
+import { ir, Topo, useFluxo } from './comum';
 
 /* ---------------- Modelo editável (strings para os inputs) ---------------- */
 
@@ -119,9 +119,9 @@ function exigeConferencia(conf: number | undefined, campo: string): boolean {
 
 /* ---------------- Tela ---------------- */
 
-export function Revisao({ manual = false }: { manual?: boolean }) {
+export function Revisao() {
   const { pendente, enviar, toast } = useFluxo();
-  const [captura, setCaptura] = useState<Captura | null>(manual ? null : pendente);
+  const [captura, setCaptura] = useState<Captura | null>(pendente);
   const [edit, setEdit] = useState<Edit | null>(null);
   const [conf, setConf] = useState<MapaConfianca>({});
   const [conferidos, setConferidos] = useState<Set<string>>(new Set());
@@ -130,22 +130,7 @@ export function Revisao({ manual = false }: { manual?: boolean }) {
   const cadastro = useLiveQuery(() => db.candidatos.toArray(), []);
 
   useEffect(() => {
-    if (manual) {
-      void (async () => {
-        const data = await lerConfig('dataEleicao', '');
-        const cargosPadrao = await lerConfig<string[]>('cargosPadrao', ['PRESIDENTE', 'GOVERNADOR']);
-        const b: Boletim = {
-          municipio: '', zona: '', local: '', secao: '', codigoUe: '', codigoCarga: '', dataVotacao: data,
-          eleitoresAptos: null, comparecimento: null, faltosos: null,
-          cargos: cargosPadrao.map((cargo) => ({ cargo, candidatos: [{ numero: '', votos: 0 }], votosNominais: null, brancos: null, nulos: null, totalApurado: null })),
-        };
-        const c: Captura = { tipo: 'manual', boletim: b };
-        setCaptura(c);
-        const r = paraEdicao(b);
-        r.edit.cargos.forEach((g) => g.candidatos.forEach((k) => (k.votos = '')));
-        setEdit(r.edit);
-      })();
-    } else if (pendente) {
+    if (pendente) {
       setCaptura(pendente);
       const r = paraEdicao(pendente.boletim, pendente.confianca);
       setEdit(r.edit);
@@ -154,7 +139,7 @@ export function Revisao({ manual = false }: { manual?: boolean }) {
       ir('/');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manual]);
+  }, []);
 
   const boletim = useMemo(() => (edit && captura ? paraBoletim(edit, captura.boletim) : null), [edit, captura]);
   const validacao = useMemo(() => (boletim ? validarBoletim(boletim) : null), [boletim]);
@@ -206,19 +191,17 @@ export function Revisao({ manual = false }: { manual?: boolean }) {
 
   return (
     <>
-      <Topo titulo={manual ? 'Digitar boletim' : `Revisar dados · ${ROTULO_ENTRADA[captura.tipo]}`} />
+      <Topo titulo={`Revisar dados · ${ROTULO_ENTRADA[captura.tipo]}`} />
       <main className="conteudo">
-        {!manual && (
-          <div className="msg info">
-            {ICONE_ENTRADA[captura.tipo]} {captura.arquivoOriginal ?? ROTULO_ENTRADA[captura.tipo]}
-            {captura.qualidadeGeral != null && <> · Confiança geral: <strong>{captura.qualidadeGeral}%</strong></>}
-            <br />
-            Confira os dados reconhecidos. Campos em <strong>amarelo</strong> têm confiança abaixo do mínimo e em{' '}
-            <strong>vermelho</strong> abaixo de 50%.
-          </div>
-        )}
+        <div className="msg info">
+          {ICONE_ENTRADA[captura.tipo]} {captura.arquivoOriginal ?? ROTULO_ENTRADA[captura.tipo]}
+          {captura.qualidadeGeral != null && <> · Confiança geral: <strong>{captura.qualidadeGeral}%</strong></>}
+          <br />
+          Confira os dados reconhecidos. Campos em <strong>amarelo</strong> têm confiança abaixo do mínimo e em{' '}
+          <strong>vermelho</strong> abaixo de 50%.
+        </div>
         {ehOcr && (captura.qualidadeGeral ?? 100) < 60 && (
-          <div className="msg erro">⚠️ Confiança geral baixa ({captura.qualidadeGeral}%). Considere refotografar com mais luz e o boletim bem enquadrado.</div>
+          <div className="msg erro">⚠️ Confiança geral baixa ({captura.qualidadeGeral}%). Confira os campos com atenção ou use um PDF de melhor qualidade.</div>
         )}
         {captura.avisos?.map((a) => <div key={a} className="msg aviso">⚠️ {a}</div>)}
 
@@ -304,11 +287,7 @@ export function Revisao({ manual = false }: { manual?: boolean }) {
         )}
 
         <div className="acoes">
-          {ehOcr ? (
-            <button className="btn" onClick={() => ir(ROTA_METODO.ocr)}>📷 Refotografar</button>
-          ) : (
-            <button className="btn" onClick={() => ir('/')}>Cancelar</button>
-          )}
+          <button className="btn" onClick={() => ir('/')}>Cancelar</button>
           <button className="btn primario" onClick={aceitar}>✅ Aceitar</button>
         </div>
       </main>
