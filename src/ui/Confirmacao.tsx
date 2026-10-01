@@ -195,6 +195,10 @@ export function Confirmacao() {
           {b.dataVotacao && <> · {dataBr(b.dataVotacao)}</>}
         </div>
         {l.validacao.checksum_valido === true && <div className="msg ok">🔐 Código verificador (hash) do QR Code conferido.</div>}
+        {l.validacao.assinatura_valida === true && <div className="msg ok">✍️ Assinatura digital do TSE válida.</div>}
+        {l.validacao.checksum_valido === true && l.validacao.assinatura_valida == null && (
+          <div className="msg info">✍️ Assinatura digital do TSE não verificada (chave pública indisponível sem internet).</div>
+        )}
         {estado.alertas.length > 0 && (
           <div className="msg aviso">
             <strong>Inconsistências registradas (aparecem no dashboard):</strong>

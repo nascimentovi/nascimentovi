@@ -1,19 +1,16 @@
 import { semAcento } from './normalizar';
 
 /** Códigos de cargo usados no QR Code do Boletim de Urna (campo CARG). */
+/** Códigos de cargo do QR Code do BU (campo CARG), conforme o manual do TSE (seção 5). */
 export const CARGOS_POR_CODIGO: Record<string, string> = {
   '1': 'PRESIDENTE',
-  '2': 'VICE-PRESIDENTE',
   '3': 'GOVERNADOR',
-  '4': 'VICE-GOVERNADOR',
   '5': 'SENADOR',
   '6': 'DEPUTADO FEDERAL',
   '7': 'DEPUTADO ESTADUAL',
   '8': 'DEPUTADO DISTRITAL',
-  '9': '1º SUPLENTE',
-  '10': '2º SUPLENTE',
+  '9': 'CONSELHEIRO DISTRITAL',
   '11': 'PREFEITO',
-  '12': 'VICE-PREFEITO',
   '13': 'VEREADOR',
 };
 
@@ -25,19 +22,21 @@ export const ORDEM_CARGOS = [
   'DEPUTADO FEDERAL',
   'DEPUTADO ESTADUAL',
   'DEPUTADO DISTRITAL',
+  'CONSELHEIRO DISTRITAL',
   'PREFEITO',
   'VEREADOR',
 ];
 
 const SINONIMOS: [RegExp, string][] = [
   [/^PRESIDENTE/, 'PRESIDENTE'],
-  [/^GOVERNADOR/, 'GOVERNADOR'],
-  [/^SENADOR/, 'SENADOR'],
+  [/^GOVERNADORA?/, 'GOVERNADOR'],
+  [/^SENADORA?/, 'SENADOR'],
   [/^DEP(UTADO)?\.?\s*FEDERAL/, 'DEPUTADO FEDERAL'],
   [/^DEP(UTADO)?\.?\s*ESTADUAL/, 'DEPUTADO ESTADUAL'],
   [/^DEP(UTADO)?\.?\s*DISTRITAL/, 'DEPUTADO DISTRITAL'],
-  [/^PREFEITO/, 'PREFEITO'],
-  [/^VEREADOR/, 'VEREADOR'],
+  [/^CONSELHEIRO\s*DISTRITAL/, 'CONSELHEIRO DISTRITAL'],
+  [/^PREFEIT[OA]/, 'PREFEITO'],
+  [/^VEREADORA?/, 'VEREADOR'],
 ];
 
 /** Converte código numérico ou texto livre para o nome canônico do cargo. */

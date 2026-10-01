@@ -31,7 +31,7 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 | Escopo | Implementação |
 |---|---|
 | Leitor de QR Code | Câmera traseira com `BarcodeDetector` nativo, quando existe, ou `jsQR`. Lanterna, se o aparelho suportar. Aceita BU dividido em vários QR (`QRBU:i:n`), lidos em qualquer ordem. Fallback: digitar/colar o conteúdo ou ler QR de uma imagem. |
-| Checksum / código verificador | A cadeia de **HASH SHA-512** de cada parte do QR é recalculada e conferida. Se não confere, a leitura é rejeitada. |
+| Checksum / código verificador | A cadeia de **HASH SHA-512** é recalculada como no manual do TSE: `HASH_1 = SHA-512(dados_1)`, `HASH_i = SHA-512(dados_1 HASH:HASH_1 … dados_(i-1) HASH:HASH_(i-1) + " " + dados_i)`, em que `dados` é o conteúdo sem o cabeçalho `QRBU/VRQR/VRCH`. Se não confere, a leitura é rejeitada. |
 | Upload de PDF | `pdf.js` (build legacy). Valida tamanho (≤ 50 MB) e assinatura `%PDF-`. Se o PDF tiver QR Code, ele é lido e validado; senão, o texto é extraído e interpretado. PDF digitalizado (só imagem) → oferece OCR. |
 | Foto / OCR | `Tesseract.js` com modelo português **servido localmente**, sem CDN. Pré-processamento (auto-contraste + binarização de Otsu), rotação manual e correção EXIF. Antes do OCR, procura QR Code na foto. |
 | Revisão | PDF/OCR/manual passam por uma tela editável com confiança por campo: verde ≥ mínimo, amarelo < mínimo, vermelho < 50%, com os mínimos da seção 8.4 do escopo. Zona, local e seção abaixo de 95%, e qualquer campo abaixo de 50%, só são aceitos depois de marcados como conferidos ou editados. Confusões de OCR (`O→0`, `l→1`, `S→5`…) são corrigidas nos campos numéricos. |
@@ -63,9 +63,9 @@ Na tela de duplicata, o usuário pode **Descartar** (fica registrado no históri
 
 ## Observações importantes
 
-- **Formato do QR Code**: segue a especificação pública do TSE (pares `CHAVE:VALOR`; `CARG` abre cada cargo; números de candidato como chave). O hash é verificado aceitando as variações de representação do hash anterior (bytes ou hexadecimal). Conferido com QR Code real de urna do 2º turno de 2022 (o hash é o SHA-512 do conteúdo sem o cabeçalho `QRBU/VRQR/VRCH`). Se um QR real for rejeitado por hash, o cálculo precisa ser ajustado no código (`src/domain/qrbu.ts`).
-- **Assinatura digital (campo `ASSI`)**: é armazenada, mas não é verificada contra a chave pública do TSE (previsto para a v3.0 no escopo).
-- **Nomes de candidatos e municípios**: o QR traz só números. Os nomes vêm de leituras por PDF/OCR e são reaproveitados automaticamente.
+- **Formato do QR Code**: segue o manual oficial "QR Code no Boletim de Urna" (TSE, 2024). Conferido com um QR Code real de urna (2º turno de 2022) e com os exemplos do manual (BU em 1 e em 4 QR Codes, Software de Votação e Sistema de Apuração), que estão nos testes.
+- **Assinatura digital (campo `ASSI`)**: Ed25519 sobre o último hash, verificada com a chave pública do TSE para a UF e a versão de chave do QR (`qrcodenobu.tse.jus.br`). A chave fica em cache no aparelho. Assinatura inválida rejeita a leitura; sem a chave (offline ou servidor inacessível), a leitura é aceita e marcada como "assinatura não verificada" na auditoria.
+- **Nomes de candidatos e municípios**: o QR traz só números. Os nomes vêm do arquivo de complemento publicado pelo TSE (`json-bu`, seção 7 do manual), baixado quando há internet e guardado em cache, ou de leituras por PDF/OCR. Se nenhum estiver disponível, o dashboard mostra "CANDIDATO nº".
 - **Layout do BU impresso**: o parser de PDF/OCR é tolerante (rótulos sem acento e em qualquer caixa, valor na mesma linha ou na seguinte), mas foi testado com boletins de exemplo, não com toda variação real. A revisão antes de aceitar é a camada final de validação.
 - **Compatibilidade**: o build é gerado para Safari 14+ e Chrome 87+. Versões muito antigas (iOS 12) não suportam partes do pdf.js e do Tesseract.
 

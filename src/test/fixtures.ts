@@ -1,4 +1,4 @@
-import { hexParaBytes, sha512Hex } from '../domain/hash';
+import { sha512Hex } from '../domain/hash';
 
 /** Conteúdo (sem HASH) de um BU de exemplo, dividido em partes. */
 export const CORPO_BU = [
@@ -7,17 +7,17 @@ export const CORPO_BU = [
   'IDEL:546 CARG:3 TIPO:0 VERC:202209 10:223 13:40 APTA:325 NOMI:263 BRAN:7 NULO:8 TOTC:278',
 ];
 
-/** Gera o texto dos QR Codes com cabeçalho e cadeia de HASH SHA-512. */
+/** Gera o texto dos QR Codes com cabeçalho e cadeia de HASH SHA-512 (como o TSE). */
 export async function gerarQrs(corpos: string[] = CORPO_BU, assinatura = 'ABCDEF0123'): Promise<string[]> {
   const out: string[] = [];
-  let anterior: string | null = null;
+  let acumulado = '';
   for (let i = 0; i < corpos.length; i++) {
-    // Mesmo cálculo do TSE: SHA-512 do conteúdo sem o cabeçalho, até antes de " HASH:".
-    const hash: string = anterior ? await sha512Hex(hexParaBytes(anterior), corpos[i]) : await sha512Hex(corpos[i]);
-    let texto = `QRBU:${i + 1}:${corpos.length} VRQR:1.5 VRCH:20220930 ${corpos[i]} HASH:${hash.toUpperCase()}`;
+    const base = acumulado ? `${acumulado} ${corpos[i]}` : corpos[i];
+    const hash = (await sha512Hex(base)).toUpperCase();
+    let texto = `QRBU:${i + 1}:${corpos.length} VRQR:1.5 VRCH:20220930 ${corpos[i]} HASH:${hash}`;
     if (i === corpos.length - 1) texto += ` ASSI:${assinatura}`;
     out.push(texto);
-    anterior = hash;
+    acumulado = `${base} HASH:${hash}`;
   }
   return out;
 }

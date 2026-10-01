@@ -100,6 +100,7 @@ function montarLeitura(captura: Captura, preparo: Preparo): Leitura {
     },
     validacao: {
       checksum_valido: captura.checksumValido ?? null,
+      assinatura_valida: captura.assinaturaValida ?? null,
       assinatura_qr: b.assinaturaQr ?? null,
       codigo_carga: apenasDigitos(b.codigoCarga),
       validacoes_estruturais: preparo.validacao.estruturais,

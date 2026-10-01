@@ -19,6 +19,8 @@ export function Auditoria() {
   const inconsistentes = ativos.filter((l) => l.validacao.alertas.length);
   const semHash = ativos.filter((l) => l.validacao.checksum_valido === false);
   const corrigidos = ativos.filter((l) => l.origem.correcoes_manuais);
+  const assinados = ativos.filter((l) => l.validacao.assinatura_valida === true);
+  const qrNaoAssinados = ativos.filter((l) => l.validacao.checksum_valido === true && l.validacao.assinatura_valida !== true);
   const porId = new Map<string, Leitura>(dados.leituras.map((l) => [l.id, l]));
 
   return (
@@ -35,6 +37,8 @@ export function Auditoria() {
               <tr><td>⚠️ Possíveis inconsistências</td><td className="n">{inconsistentes.length}</td></tr>
               <tr><td>✏️ Com correção manual</td><td className="n">{corrigidos.length}</td></tr>
               <tr><td>🔓 Hash do QR não conferido</td><td className="n">{semHash.length}</td></tr>
+              <tr><td>✍️ Assinatura do TSE válida</td><td className="n">{assinados.length}</td></tr>
+              <tr><td>❔ QR com assinatura não verificada</td><td className="n">{qrNaoAssinados.length}</td></tr>
             </tbody>
           </table>
         </section>

@@ -77,6 +77,8 @@ export interface Captura {
   /** Conteúdo bruto lido (texto do QR, texto extraído do PDF/OCR). */
   conteudoBruto?: string;
   checksumValido?: boolean | null;
+  /** Assinatura digital do TSE: true = válida, null = não verificada (sem chave). */
+  assinaturaValida?: boolean | null;
   avisos?: string[];
   /** Usuário alterou algum campo na revisão. */
   correcoesManuais?: boolean;
@@ -125,6 +127,8 @@ export interface Leitura {
   };
   validacao: {
     checksum_valido: boolean | null;
+    /** Assinatura digital Ed25519 do TSE (null = não verificada). */
+    assinatura_valida?: boolean | null;
     assinatura_qr: string | null;
     codigo_carga: string;
     validacoes_estruturais: ValidacoesEstruturais;

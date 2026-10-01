@@ -80,6 +80,7 @@ export function DetalheLeitura({ id }: { id: string }) {
             {l.origem.qualidade_ocr != null && <><dt>Confiança</dt><dd>{l.origem.qualidade_ocr}%</dd></>}
             <dt>Correções manuais</dt><dd>{l.origem.correcoes_manuais ? 'Sim' : 'Não'}</dd>
             <dt>Hash QR conferido</dt><dd>{ok(v.checksum_valido)}</dd>
+            <dt>Assinatura TSE</dt><dd>{v.assinatura_valida === true ? '✅ válida' : v.checksum_valido === null ? '—' : 'não verificada'}</dd>
             <dt>Totais consistentes</dt><dd>{ok(v.validacoes_estruturais.total_votos_consistente)}</dd>
             <dt>Comparecimento consistente</dt><dd>{ok(v.validacoes_estruturais.comparecimento_consistente)}</dd>
             <dt>Campos obrigatórios</dt><dd>{ok(v.validacoes_estruturais.campos_obrigatorios_completos)}</dd>

@@ -1,32 +1,63 @@
 import { gravarConfig, lerConfig } from '../db/database';
+import { verificarAssinaturaBu } from '../domain/assinatura';
 import { interpretarQr, MontadorQr, separarPartes, validarHashes } from '../domain/qrbu';
 import type { Boletim, Captura, Leitura, TipoEntrada } from '../domain/types';
+import { obterChavePublica, obterComplemento } from './tseQr';
 
-export const CFG_PERMITIR_HASH = 'permitirHashNaoVerificado';
 export const CFG_MUNICIPIOS = 'municipios';
 
 export class ErroCaptura extends Error {}
 
 /**
  * Converte as partes completas de QR Code em uma Captura validada.
- * A cadeia de HASH funciona como código verificador: se não conferir, a
- * leitura é rejeitada (salvo se o usuário habilitou o modo tolerante).
+ *
+ * - Código verificador (cadeia de HASH SHA-512): obrigatório; se não conferir,
+ *   a leitura é rejeitada.
+ * - Assinatura digital do TSE (ASSI, Ed25519): verificada quando a chave
+ *   pública está disponível (baixada do TSE ou em cache). Assinatura inválida
+ *   rejeita a leitura; sem a chave (ex.: offline) a leitura segue marcada
+ *   como "não verificada".
+ * - Nomes de município e candidatos: completados pelo arquivo do TSE, quando
+ *   disponível. Nunca impede a leitura.
  */
 export async function capturaDeQr(montador: MontadorQr, tipo: TipoEntrada = 'qr_code', arquivo?: string): Promise<Captura> {
   const partes = montador.ordenadas();
   const hash = await validarHashes(partes);
-  const permitir = await lerConfig(CFG_PERMITIR_HASH, false);
+  if (hash.valido === false) throw new ErroCaptura(`Código verificador inválido: ${hash.detalhe} Leia o QR Code novamente.`);
+  if (hash.valido === null) throw new ErroCaptura(`${hash.detalhe} Não é possível verificar a integridade.`);
+
+  const { boletim, campos } = interpretarQr(partes);
   const avisos: string[] = [];
-  if (hash.valido === false) {
-    if (!permitir) throw new ErroCaptura(`Código verificador inválido: ${hash.detalhe} Leia o QR Code novamente.`);
-    avisos.push(`Hash não conferido: ${hash.detalhe}`);
-  } else if (hash.valido === null) {
-    if (!permitir) throw new ErroCaptura(`${hash.detalhe} Não é possível verificar a integridade.`);
-    avisos.push(hash.detalhe);
+
+  // Chave pública e nomes são buscados em paralelo (do cache, quando já baixados).
+  const [chave, comp] = await Promise.all([
+    hash.assinatura ? obterChavePublica(campos).catch(() => null) : Promise.resolve(null),
+    obterComplemento(campos).catch(() => null),
+  ]);
+
+  let assinaturaValida: boolean | null = null;
+  if (hash.assinatura && hash.hashFinal) {
+    if (chave) {
+      assinaturaValida = verificarAssinaturaBu(hash.hashFinal, hash.assinatura, chave);
+      if (!assinaturaValida) {
+        throw new ErroCaptura('Assinatura digital do TSE inválida: este QR Code não foi gerado por uma urna oficial ou foi alterado.');
+      }
+    }
   }
-  const { boletim } = interpretarQr(partes);
+
+  if (comp) {
+    if (comp.municipio) boletim.municipio = comp.municipio;
+    for (const c of boletim.cargos) {
+      for (const k of c.candidatos) {
+        const nome = comp.candidatos[`${c.cargo}|${Number(k.numero)}`];
+        if (nome && !k.legenda) k.nome = nome;
+      }
+    }
+  }
   const municipios = await lerConfig<Record<string, string>>(CFG_MUNICIPIOS, {});
-  if (boletim.codigoMunicipio && municipios[boletim.codigoMunicipio]) boletim.municipio = municipios[boletim.codigoMunicipio];
+  if (!comp?.municipio && boletim.codigoMunicipio && municipios[boletim.codigoMunicipio]) {
+    boletim.municipio = municipios[boletim.codigoMunicipio];
+  }
   if (boletim.fase && boletim.fase !== 'O') {
     avisos.push(`Boletim de urna em fase "${boletim.fase === 'S' ? 'simulado' : boletim.fase === 'T' ? 'treinamento' : boletim.fase}" (não oficial).`);
   }
@@ -34,6 +65,7 @@ export async function capturaDeQr(montador: MontadorQr, tipo: TipoEntrada = 'qr_
     tipo,
     boletim,
     checksumValido: hash.valido,
+    assinaturaValida,
     conteudoBruto: partes.map((p) => p.texto).join('\n'),
     arquivoOriginal: arquivo,
     avisos,

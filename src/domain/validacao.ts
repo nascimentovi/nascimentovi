@@ -16,7 +16,6 @@ export function validarBoletim(b: Boletim): ResultadoValidacao {
 
   if (!b.zona) erros.push('Zona eleitoral não informada.');
   if (!b.secao) erros.push('Seção eleitoral não informada.');
-  if (!b.local) erros.push('Local de votação não informado.');
   if (!b.dataVotacao) erros.push('Data da votação não informada.');
   if (!b.cargos.length) erros.push('Nenhum cargo com votos informado.');
   if (b.eleitoresAptos === null) erros.push('Eleitores aptos não informado.');

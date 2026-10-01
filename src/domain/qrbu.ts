@@ -15,7 +15,7 @@
  * funciona como código verificador da integridade do conteúdo.
  */
 import { cargoCanonico } from './cargos';
-import { hexParaBytes, sha512Hex } from './hash';
+import { sha512Hex } from './hash';
 import { apenasDigitos, dataIso, numeroCanonico } from './normalizar';
 import type { Boletim, ResultadoCargo } from './types';
 
@@ -50,54 +50,56 @@ export function identificarParte(texto: string): ParteQr {
   return { indice, total, texto: texto.trim() };
 }
 
-/** Conteúdo sobre o qual o HASH de uma parte é calculado (tudo antes de "HASH:"). */
-function conteudoAntesDoHash(texto: string): { conteudo: string; hash: string } | null {
-  const i = texto.search(/(^|\s)HASH:/);
+/**
+ * Separa uma parte do QR em "dados" (conteúdo do boletim, sem o cabeçalho
+ * QRBU/VRQR/VRCH e sem o espaço antes de HASH), hash e assinatura.
+ */
+function separarSecoes(texto: string): { dados: string; hash: string; assinatura: string | null } | null {
+  const semCabecalho = texto.trim().replace(/^QRBU:\S+\s+(VRQR:\S+\s+)?(VRCH:\S+\s+)?/, '');
+  const i = semCabecalho.search(/(^|\s)HASH:/);
   if (i < 0) return null;
-  const inicioChave = texto[i] === 'H' ? i : i + 1;
-  const hash = texto.slice(inicioChave + 5).split(/\s+/)[0];
-  return { conteudo: texto.slice(0, inicioChave), hash };
+  const inicio = semCabecalho[i] === 'H' ? i : i + 1;
+  const depois = semCabecalho.slice(inicio + 5).split(/\s+/);
+  const assi = semCabecalho.match(/(?:^|\s)ASSI:([0-9A-Fa-f]+)/);
+  return { dados: semCabecalho.slice(0, inicio).trimEnd(), hash: depois[0], assinatura: assi ? assi[1] : null };
 }
 
 export interface ResultadoHash {
   /** true = conferido, false = não confere, null = QR sem campo HASH. */
   valido: boolean | null;
   detalhe: string;
+  /** Hash da última parte (é ele que o TSE assina) e a assinatura ASSI. */
+  hashFinal?: string;
+  assinatura?: string | null;
 }
 
 /**
- * Valida a cadeia de hashes SHA-512 das partes do QR Code.
+ * Valida a cadeia de hashes SHA-512 das partes do QR Code, conforme o manual
+ * "QR Code no Boletim de Urna" do TSE (seções 4 e 6.1):
  *
- * Formato confirmado com QR Code real de urna (2022): HASH = SHA-512 do
- * conteúdo SEM o cabeçalho ("QRBU:i:n VRQR:x VRCH:y ") e sem o espaço que
- * antecede "HASH:". Nas partes seguintes de um BU com vários QR Codes, o
- * hash da parte anterior é encadeado; por não haver exemplo real desse caso,
- * aceitam-se as variações de representação (bytes/hexadecimal, antes/depois).
+ *   HASH_1 = SHA-512(dados_1)
+ *   HASH_i = SHA-512(conteúdo_(i-1) + " " + dados_i)
+ *   conteúdo_(i-1) = "dados_1 HASH:HASH_1 dados_2 HASH:HASH_2 … dados_(i-1) HASH:HASH_(i-1)"
+ *
+ * em que dados_i é o conteúdo da parte sem o cabeçalho (QRBU/VRQR/VRCH).
+ * Conferido com QR Code real de urna (2022) e com os exemplos do manual (2024).
  */
 export async function validarHashes(partes: ParteQr[]): Promise<ResultadoHash> {
-  let anterior: string | null = null;
+  let acumulado = '';
+  let hashFinal = '';
+  let assinatura: string | null = null;
   for (const p of partes) {
-    const h = conteudoAntesDoHash(p.texto);
-    if (!h) return { valido: null, detalhe: `QR ${p.indice}/${p.total} não possui campo HASH.` };
-    const esperado = h.hash.toLowerCase();
-    const semCabecalho = h.conteudo.replace(/^QRBU:\S+\s+(VRQR:\S+\s+)?(VRCH:\S+\s+)?/, '');
-    const conteudos = [semCabecalho.trimEnd(), semCabecalho, h.conteudo.trimEnd(), h.conteudo];
-    const prefixos: (string | Uint8Array)[] =
-      anterior === null ? [''] : [hexParaBytes(anterior), anterior.toUpperCase(), anterior.toLowerCase()];
-    let ok = false;
-    for (const c of conteudos) {
-      for (const pre of prefixos) {
-        if ((await sha512Hex(pre, c)) === esperado || (await sha512Hex(c, pre)) === esperado) {
-          ok = true;
-          break;
-        }
-      }
-      if (ok) break;
+    const s = separarSecoes(p.texto);
+    if (!s) return { valido: null, detalhe: `QR ${p.indice}/${p.total} não possui campo HASH.` };
+    const base = acumulado ? `${acumulado} ${s.dados}` : s.dados;
+    if ((await sha512Hex(base)) !== s.hash.toLowerCase()) {
+      return { valido: false, detalhe: `Hash do QR ${p.indice}/${p.total} não confere com o conteúdo.` };
     }
-    if (!ok) return { valido: false, detalhe: `Hash do QR ${p.indice}/${p.total} não confere com o conteúdo.` };
-    anterior = esperado;
+    acumulado = `${base} HASH:${s.hash}`;
+    hashFinal = s.hash;
+    assinatura = s.assinatura ?? assinatura;
   }
-  return { valido: true, detalhe: 'Hash SHA-512 de todas as partes conferido.' };
+  return { valido: true, detalhe: 'Hash SHA-512 de todas as partes conferido.', hashFinal, assinatura };
 }
 
 export interface BoletimQr {
@@ -166,9 +168,14 @@ export function interpretarQr(partes: ParteQr[]): BoletimQr {
           case 'TOTC':
             c.totalApurado = Number(valor);
             continue;
+          case 'APTA':
+            if (!campos.APTA) campos.APTA = valor;
+            continue;
           case 'TIPO':
           case 'VERC':
-          case 'APTA':
+          case 'APTS':
+          case 'APTT':
+          case 'CSEC':
           case 'TOTP':
             continue;
         }
@@ -180,7 +187,8 @@ export function interpretarQr(partes: ParteQr[]): BoletimQr {
   if (!campos.ZONA || !campos.SECA) throw new ErroQr('QR Code sem identificação de zona/seção.');
   if (!cargos.length) throw new ErroQr('QR Code sem resultados de votação (nenhum cargo encontrado).');
 
-  const aptos = campos.APTS ?? campos.APTO;
+  // APTO = total de aptos (originários + transferidos); BU do Sistema de Apuração não traz APTO.
+  const aptos = campos.APTO ?? campos.APTS ?? campos.APTA;
   const boletim: Boletim = {
     uf: campos.UNFE,
     municipio: campos.MUNI ? `MUNICÍPIO ${campos.MUNI}` : '',
