@@ -9,6 +9,7 @@ export function Ajuda() {
           <h2>Como funciona</h2>
           <ol>
             <li><strong>📱 QR Code</strong>: aponte a câmera para o QR Code do Boletim de Urna. Se o boletim tiver vários QR Codes, leia todos (em qualquer ordem). O hash SHA-512 de cada parte é conferido antes de aceitar.</li>
+            <li><strong>📸 Foto</strong>: tire uma foto do boletim impresso ou envie uma imagem da galeria. Se houver QR Code na imagem, ele é lido e validado; senão, o texto é reconhecido (OCR) e você confere os campos destacados antes de aceitar.</li>
             <li><strong>📄 PDF</strong>: envie o PDF do boletim. Se houver QR Code no arquivo, ele é usado; senão, o texto é extraído (ou reconhecido por OCR, se o PDF for digitalizado) e você revisa os dados.</li>
           </ol>
         </section>

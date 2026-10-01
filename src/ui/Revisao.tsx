@@ -201,7 +201,7 @@ export function Revisao() {
           <strong>vermelho</strong> abaixo de 50%.
         </div>
         {ehOcr && (captura.qualidadeGeral ?? 100) < 60 && (
-          <div className="msg erro">⚠️ Confiança geral baixa ({captura.qualidadeGeral}%). Confira os campos com atenção ou use um PDF de melhor qualidade.</div>
+          <div className="msg erro">⚠️ Confiança geral baixa ({captura.qualidadeGeral}%). Confira os campos com atenção ou tire uma nova foto com mais luz e o boletim bem enquadrado.</div>
         )}
         {captura.avisos?.map((a) => <div key={a} className="msg aviso">⚠️ {a}</div>)}
 
@@ -287,7 +287,11 @@ export function Revisao() {
         )}
 
         <div className="acoes">
-          <button className="btn" onClick={() => ir('/')}>Cancelar</button>
+          {ehOcr ? (
+            <button className="btn" onClick={() => ir('/foto')}>📷 Nova foto</button>
+          ) : (
+            <button className="btn" onClick={() => ir('/')}>Cancelar</button>
+          )}
           <button className="btn primario" onClick={aceitar}>✅ Aceitar</button>
         </div>
       </main>

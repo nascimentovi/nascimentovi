@@ -1,6 +1,6 @@
 # Apuração BU — leitura e contabilização de Boletins de Urna
 
-PWA (aplicativo web instalável, mobile-first) que lê Boletins de Urna (BU) por **QR Code** ou **PDF**, contabiliza os votos em um painel de apuração na própria tela inicial, em tempo real, e impede que o mesmo boletim seja contado duas vezes, qualquer que seja a forma de entrada. Funciona **100% offline**, sem login. Os dados ficam no próprio aparelho, em IndexedDB.
+PWA (aplicativo web instalável, mobile-first) que lê Boletins de Urna (BU) por **QR Code**, **PDF** ou **foto** (câmera ou imagem da galeria, com leitura do QR na imagem ou OCR), contabiliza os votos em um painel de apuração na própria tela inicial, em tempo real, e impede que o mesmo boletim seja contado duas vezes, qualquer que seja a forma de entrada. Funciona **100% offline**, sem login. Os dados ficam no próprio aparelho, em IndexedDB.
 
 ## Como rodar
 
@@ -22,7 +22,7 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 | Arquivo | Como usar |
 |---|---|
 | `qr-bu-exemplo.txt` | Leitor QR → "Digitar código" → colar o conteúdo (3 partes com hash válido). |
-| `qr-bu-exemplo-3-partes.png` | Leitor QR → "QR de imagem" |
+| `qr-bu-exemplo-3-partes.png` | Leitor QR → "QR de imagem", ou Foto do boletim → Galeria |
 | `bu-exemplo-secao-0182.pdf` | Upload de PDF (é o mesmo boletim do QR, então é detectado como duplicata) |
 
 ## Funcionalidades
@@ -32,7 +32,8 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 | Leitor de QR Code | Câmera traseira com `BarcodeDetector` nativo, quando existe, ou `jsQR`. Lanterna, se o aparelho suportar. Aceita BU dividido em vários QR (`QRBU:i:n`), lidos em qualquer ordem. Fallback: digitar/colar o conteúdo ou ler QR de uma imagem. |
 | Checksum / código verificador | A cadeia de **HASH SHA-512** é recalculada como no manual do TSE: `HASH_1 = SHA-512(dados_1)`, `HASH_i = SHA-512(dados_1 HASH:HASH_1 … dados_(i-1) HASH:HASH_(i-1) + " " + dados_i)`, em que `dados` é o conteúdo sem o cabeçalho `QRBU/VRQR/VRCH`. Se não confere, a leitura é rejeitada. |
 | Upload de PDF | `pdf.js` (build legacy). Valida tamanho (≤ 50 MB) e assinatura `%PDF-`. Se o PDF tiver QR Code, ele é lido e validado; senão, o texto é extraído e interpretado. PDF digitalizado (só imagem) → oferece OCR (`Tesseract.js` com modelo português servido localmente, sem CDN). |
-| Revisão | Leituras de PDF passam por uma tela editável com confiança por campo: verde ≥ mínimo, amarelo < mínimo, vermelho < 50%, com os mínimos da seção 8.4 do escopo. Zona, local e seção abaixo de 95%, e qualquer campo abaixo de 50%, só são aceitos depois de marcados como conferidos ou editados. Confusões de OCR (`O→0`, `l→1`, `S→5`…) são corrigidas nos campos numéricos. |
+| Foto do boletim | Câmera do aparelho ou imagem da galeria (JPG/PNG). Primeiro procura o QR Code na imagem (validado como na leitura direta); sem QR, aplica OCR (`Tesseract.js` local) com pré-processamento (auto-contraste, binarização de Otsu), rotação e correção EXIF. |
+| Revisão | Leituras de PDF e de foto (OCR) passam por uma tela editável com confiança por campo: verde ≥ mínimo, amarelo < mínimo, vermelho < 50%, com os mínimos da seção 8.4 do escopo. Zona, local e seção abaixo de 95%, e qualquer campo abaixo de 50%, só são aceitos depois de marcados como conferidos ou editados. Confusões de OCR (`O→0`, `l→1`, `S→5`…) são corrigidas nos campos numéricos. |
 | Validação estrutural | Campos obrigatórios; comparecimento + faltosos = aptos; soma dos candidatos = nominais; nominais + legenda + brancos + nulos = total apurado; total por cargo × comparecimento. O que for inconsistente vira alerta no painel de apuração e no detalhe do registro. |
 | Duplicidade | Ver abaixo. |
 | Painel de apuração (tela inicial) | Urnas lidas (/ esperadas), aptos, comparecimento, abstenção, origem das leituras, alertas, resultados por cargo com barras e % (sobre válidos ou sobre o total), filtros por município, zona e local. Atualiza sozinho a cada leitura ou exclusão. |
@@ -44,7 +45,7 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 
 Toda captura, de qualquer origem, é convertida para o mesmo formato normalizado (`Boletim`, em `src/domain/types.ts`). Ao gravar, o boletim é comparado com os registros **ativos** em três níveis:
 
-1. **Fingerprint** = `SHA-256(zona | local | seção | data | eleitores aptos | votos canônicos)`. Os votos são serializados com os cargos em ordem fixa e os candidatos ordenados por número, então o mesmo boletim lido por QR ou PDF gera o **mesmo** hash.
+1. **Fingerprint** = `SHA-256(zona | local | seção | data | eleitores aptos | votos canônicos)`. Os votos são serializados com os cargos em ordem fixa e os candidatos ordenados por número, então o mesmo boletim lido por QR, PDF ou foto gera o **mesmo** hash.
 2. **Código de identificação da carga**: quando presente nas duas leituras.
 3. **Mesma urna** (zona + seção + data) com conteúdo diferente: também é tratado como duplicata, e a tela destaca os campos **divergentes** (possível alteração ou erro de leitura).
 
@@ -83,7 +84,7 @@ src/
     capturaQr.ts      QR → captura validada
     pdf.ts | ocr.ts | imagem.ts   pdf.js, Tesseract.js, pré-processamento e detecção de QR
     exportacao.ts     CSV/JSON
-  ui/               telas React (início com painel de apuração, QR, PDF, revisão,
+  ui/               telas React (início com painel de apuração, QR, PDF, foto, revisão,
                     confirmação/duplicata, histórico, detalhe, ajuda)
 scripts/copy-ocr-assets.mjs   copia o worker, o núcleo WASM e o modelo `por` do Tesseract para public/
 ```

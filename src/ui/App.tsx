@@ -9,6 +9,7 @@ import { Inicio } from './Inicio';
 import { LeitorPdf } from './LeitorPdf';
 import { LeitorQr } from './LeitorQr';
 import { Revisao } from './Revisao';
+import { FotoOcr } from './FotoOcr';
 
 export function App() {
   const rota = useRota();
@@ -40,6 +41,7 @@ export function App() {
   switch (`/${base}`) {
     case '/qr': tela = <LeitorQr />; break;
     case '/pdf': tela = <LeitorPdf />; break;
+    case '/foto': tela = <FotoOcr />; break;
     case '/revisar': tela = <Revisao />; break;
     case '/confirmar': tela = <Confirmacao />; break;
     case '/historico': tela = <Historico />; break;

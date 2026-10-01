@@ -28,7 +28,7 @@ export function voltar(padrao = '/'): void {
 export const ROTA_METODO: Record<TipoEntrada, string> = {
   qr_code: '/qr',
   pdf: '/pdf',
-  ocr: '/pdf', // OCR só ocorre em PDF digitalizado
+  ocr: '/foto',
   manual: '/',
 };
 
