@@ -28,6 +28,7 @@ export function voltar(padrao = '/'): void {
 export const ROTA_METODO: Record<TipoEntrada, string> = {
   qr_code: '/qr',
   pdf: '/pdf',
+  arquivo_bu: '/pdf',
   ocr: '/foto',
   manual: '/',
 };

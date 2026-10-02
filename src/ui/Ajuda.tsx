@@ -10,6 +10,7 @@ export function Ajuda() {
           <ol>
             <li><strong>📱 QR Code</strong>: aponte a câmera para o QR Code do Boletim de Urna. Se o boletim tiver vários QR Codes, leia todos (em qualquer ordem). O hash SHA-512 de cada parte é conferido antes de aceitar.</li>
             <li><strong>📸 Foto</strong>: tire uma foto do boletim impresso ou envie uma imagem da galeria. Se houver QR Code na imagem, ele é lido e validado; senão, o texto é reconhecido (OCR) e você confere os campos destacados antes de aceitar.</li>
+            <li><strong>💾 Arquivo do BU (TSE)</strong>: envie o arquivo do boletim de urna baixado no site de resultados do TSE (.bu ou .dat), pela opção “Upload de arquivo”. Os dados são lidos direto do arquivo oficial, sem revisão.</li>
             <li><strong>📄 PDF</strong>: envie o PDF do boletim. Se houver QR Code no arquivo, ele é usado; senão, o texto é extraído (ou reconhecido por OCR, se o PDF for digitalizado) e você revisa os dados.</li>
           </ol>
         </section>

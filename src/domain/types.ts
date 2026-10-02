@@ -1,9 +1,10 @@
 /** Origem da captura de um boletim. */
-export type TipoEntrada = 'qr_code' | 'pdf' | 'ocr' | 'manual';
+export type TipoEntrada = 'qr_code' | 'pdf' | 'arquivo_bu' | 'ocr' | 'manual';
 
 export const ROTULO_ENTRADA: Record<TipoEntrada, string> = {
   qr_code: 'QR Code',
   pdf: 'PDF',
+  arquivo_bu: 'Arquivo do BU (TSE)',
   ocr: 'Foto (OCR)',
   manual: 'Digitação manual',
 };
@@ -11,6 +12,7 @@ export const ROTULO_ENTRADA: Record<TipoEntrada, string> = {
 export const ICONE_ENTRADA: Record<TipoEntrada, string> = {
   qr_code: '📱',
   pdf: '📄',
+  arquivo_bu: '💾',
   ocr: '📸',
   manual: '⌨️',
 };

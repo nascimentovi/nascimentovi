@@ -194,6 +194,7 @@ export function Confirmacao() {
           {b.dataVotacao && <> · {dataBr(b.dataVotacao)}</>}
           {localDaLeitura(l) && <><br />🏫 {localDaLeitura(l)!.escola} • 📍 {localDaLeitura(l)!.bairro}</>}
         </div>
+        {l.tipo_entrada === 'arquivo_bu' && <div className="msg ok">💾 Lido do arquivo oficial do boletim de urna do TSE.</div>}
         {l.validacao.checksum_valido === true && <div className="msg ok">🔐 Código verificador (hash) do QR Code conferido.</div>}
         {l.validacao.assinatura_valida === true && <div className="msg ok">✍️ Assinatura digital do TSE válida.</div>}
         {l.validacao.checksum_valido === true && l.validacao.assinatura_valida == null && (

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { interpretarArquivoBu, pareceArquivoBu } from '../domain/arquivoBu';
 import { interpretarTextoBu, type LinhaTexto } from '../domain/textoBu';
 import { capturaDeQr, montarDeTextos } from '../services/capturaQr';
 import { preprocessar } from '../services/imagem';
@@ -25,8 +26,8 @@ export function LeitorPdf() {
     setAviso('');
     setSemTexto(null);
     if (!f) return;
-    if (f.type && f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-      setErro('Arquivo inválido: selecione um PDF.');
+    if (!/\.(pdf|bu|dat)$/i.test(f.name) && f.type !== 'application/pdf') {
+      setErro('Arquivo inválido: selecione um PDF ou o arquivo do boletim de urna (.bu ou .dat).');
       return;
     }
     setArquivo(f);
@@ -39,6 +40,18 @@ export function LeitorPdf() {
     setAviso('');
     try {
       setProg({ v: 0, etapa: 'Validando arquivo' });
+
+      // Arquivo binário do BU publicado pelo TSE (.bu/.dat): dados oficiais, contabiliza direto.
+      const bytes = new Uint8Array(await arquivo.arrayBuffer());
+      const cabecalho = new TextDecoder().decode(bytes.subarray(0, 8));
+      if (!cabecalho.includes('%PDF') && pareceArquivoBu(bytes)) {
+        const { boletim } = interpretarArquivoBu(bytes);
+        const avisos = boletim.fase && boletim.fase !== 'O' ? [`Boletim de urna em fase "${boletim.fase === 'S' ? 'simulado' : 'treinamento'}" (não oficial).`] : [];
+        setProg({ v: 1, etapa: 'Boletim de urna lido' });
+        enviar({ tipo: 'arquivo_bu', boletim, arquivoOriginal: arquivo.name, avisos, checksumValido: null }, false);
+        return;
+      }
+
       // pdf.js é carregado sob demanda (mantém o app inicial leve).
       const { processarPdf, validarArquivoPdf } = await import('../services/pdf');
       const buf = await validarArquivoPdf(arquivo);
@@ -119,17 +132,17 @@ export function LeitorPdf() {
 
   return (
     <>
-      <Topo titulo="Upload de PDF" />
+      <Topo titulo="Upload de arquivo" />
       <main className="conteudo">
         {prog ? (
           <section className="cartao">
-            <h2>Processando PDF…</h2>
+            <h2>Processando arquivo…</h2>
             <Progresso valor={prog.v} etapa={prog.etapa} />
             <button className="btn" style={{ marginTop: 12 }} onClick={() => { cancelado.current = true; setProg(null); }}>Cancelar</button>
           </section>
         ) : (
           <>
-            <h2>Selecione o arquivo PDF do boletim</h2>
+            <h2>Selecione o arquivo do boletim</h2>
             <label
               className={`soltar${arrastando ? ' ativo' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
@@ -143,9 +156,12 @@ export function LeitorPdf() {
                 <p>Arraste o arquivo aqui ou toque para selecionar</p>
               )}
               <span className="btn pequeno">Selecionar arquivo</span>
-              <input type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { escolher(e.target.files?.[0]); e.target.value = ''; }} />
+              <input type="file" accept="application/pdf,.pdf,.bu,.dat,application/octet-stream" hidden onChange={(e) => { escolher(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
-            <p className="muted">Máximo de 50 MB. Se o PDF tiver o QR Code do boletim, ele é lido e validado automaticamente.</p>
+            <p className="muted">
+              Aceita <strong>PDF</strong> (máx. 50 MB; se tiver o QR Code do boletim, ele é lido e validado) ou o{' '}
+              <strong>arquivo do boletim de urna do TSE</strong> (.bu ou .dat, baixado no site de resultados do TSE).
+            </p>
           </>
         )}
 
