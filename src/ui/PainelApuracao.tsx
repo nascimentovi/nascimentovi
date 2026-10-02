@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { db, lerConfig } from '../db/database';
 import { agregar, aplicarFiltro, type FiltroLeituras, type ResultadoAgregadoCargo } from '../domain/agregacao';
+import { eleicaoDoBoletim, turnoDoBoletim } from '../domain/eleicao';
 import { localDaLeitura } from '../domain/locais';
 import { comZeros, formatarNumero, formatarPct } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type TipoEntrada } from '../domain/types';
@@ -61,6 +62,9 @@ function CartaoCargo({ c }: { c: ResultadoAgregadoCargo }) {
   );
 }
 
+/** Valor de filtro que significa "todas as eleições / todos os turnos". */
+const TODOS = '*';
+
 /** Painel de apuração (totais, filtros e resultados por cargo), exibido na tela inicial. */
 export function PainelApuracao() {
   const leituras = useLiveQuery(() => db.leituras.toArray(), []);
@@ -69,24 +73,46 @@ export function PainelApuracao() {
   const [filtro, setFiltro] = useState<FiltroLeituras>({});
 
   const ativas = useMemo(() => (leituras ?? []).filter((l) => l.status === 'ativo'), [leituras]);
+  // Eleição e turno: por padrão, os mais recentes lidos (não faz sentido somar eleições/turnos diferentes).
+  const eleicoes = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of ativas) {
+      const e = eleicaoDoBoletim(l.boletim);
+      if (e) m.set(e.chave, e.rotulo);
+    }
+    return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([chave, rotulo]) => ({ chave, rotulo }));
+  }, [ativas]);
+  const eleicaoEf = filtro.eleicao === TODOS ? undefined : (filtro.eleicao ?? eleicoes[0]?.chave);
+  const naEleicao = useMemo(() => ativas.filter((l) => !eleicaoEf || eleicaoDoBoletim(l.boletim)?.chave === eleicaoEf), [ativas, eleicaoEf]);
+  const turnos = useMemo(
+    () => [...new Set(naEleicao.map((l) => turnoDoBoletim(l.boletim)).filter((t): t is '1' | '2' => !!t))].sort().reverse(),
+    [naEleicao],
+  );
+  // Com "todas as eleições", o padrão também é todos os turnos.
+  const turnoPadrao = filtro.eleicao === TODOS ? undefined : turnos[0];
+  const turnoEf = filtro.turno === TODOS ? undefined : (filtro.turno ?? turnoPadrao);
+  const base = useMemo(() => naEleicao.filter((l) => !turnoEf || turnoDoBoletim(l.boletim) === turnoEf), [naEleicao, turnoEf]);
+  const filtroEf: FiltroLeituras = { ...filtro, eleicao: eleicaoEf, turno: turnoEf };
+
   // Opções em cascata: município → bairro → local de votação → seção.
   const opcoes = useMemo(() => {
     const ordenar = (xs: string[]) => [...new Set(xs.filter(Boolean))].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
-    const noMunicipio = ativas.filter((l) => !filtro.municipio || l.municipio === filtro.municipio);
+    const noMunicipio = base.filter((l) => !filtro.municipio || l.municipio === filtro.municipio);
     const noBairro = noMunicipio.filter((l) => !filtro.bairro || localDaLeitura(l)?.bairro === filtro.bairro);
     const noLocal = noBairro.filter((l) => !filtro.local || l.local_votacao === filtro.local);
     const escolas = new Map(noBairro.map((l) => [l.local_votacao, localDaLeitura(l)?.escola]));
     return {
-      municipios: [...new Set(ativas.map((l) => l.municipio).filter(Boolean))].sort(),
+      municipios: [...new Set(base.map((l) => l.municipio).filter(Boolean))].sort(),
       bairros: [...new Set(noMunicipio.map((l) => localDaLeitura(l)?.bairro ?? ''))].filter(Boolean).sort(),
       locais: ordenar(noBairro.map((l) => l.local_votacao)).map((local) => ({ local, escola: escolas.get(local) })),
       secoes: ordenar(noLocal.map((l) => l.secao)),
     };
-  }, [ativas, filtro.municipio, filtro.bairro, filtro.local]);
+  }, [base, filtro.municipio, filtro.bairro, filtro.local]);
   // Registros excluídos entram só como fonte de nomes de candidatos (agregar() ignora seus votos).
   const tot = useMemo(
-    () => agregar([...aplicarFiltro(ativas, filtro), ...(leituras ?? []).filter((l) => l.status !== 'ativo')], cadastro ?? []),
-    [ativas, filtro, cadastro, leituras],
+    () => agregar([...aplicarFiltro(ativas, filtroEf), ...(leituras ?? []).filter((l) => l.status !== 'ativo')], cadastro ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ativas, JSON.stringify(filtroEf), cadastro, leituras],
   );
 
   if (!leituras) return null;
@@ -95,13 +121,25 @@ export function PainelApuracao() {
   return (
     <>
         {ativas.length > 0 && (
+          <div className="filtros par" aria-label="Eleição e turno">
+            <select className="ent" value={filtro.eleicao ?? ''} onChange={(e) => setFiltro({ eleicao: e.target.value || undefined })} aria-label="Eleição">
+              {eleicoes.map((e, i) => <option key={e.chave} value={i === 0 ? '' : e.chave}>{e.rotulo}</option>)}
+              {eleicoes.length > 1 && <option value={TODOS}>Todas as eleições</option>}
+            </select>
+            <select className="ent" value={filtro.turno ?? ''} onChange={(e) => setFiltro({ eleicao: filtro.eleicao, turno: e.target.value || undefined })} aria-label="Turno">
+              {turnos.map((t) => <option key={t} value={!filtro.turno && t === turnoPadrao ? '' : t}>{t}º turno</option>)}
+              <option value={!filtro.turno && !turnoPadrao ? '' : TODOS}>{turnos.length ? 'Todos os turnos' : 'Turno não identificado'}</option>
+            </select>
+          </div>
+        )}
+        {ativas.length > 0 && (
           <div className={`filtros duas${opcoes.bairros.length ? ' com-bairro' : ''}`} aria-label="Filtros">
-            <select className="ent" value={filtro.municipio ?? ''} onChange={(e) => setFiltro({ municipio: e.target.value || undefined })} aria-label="Município">
+            <select className="ent" value={filtro.municipio ?? ''} onChange={(e) => setFiltro({ eleicao: filtro.eleicao, turno: filtro.turno, municipio: e.target.value || undefined })} aria-label="Município">
               <option value="">Município</option>
               {opcoes.municipios.map((m) => <option key={m}>{m}</option>)}
             </select>
             {opcoes.bairros.length > 0 && (
-              <select className="ent" value={filtro.bairro ?? ''} onChange={(e) => setFiltro({ municipio: filtro.municipio, bairro: e.target.value || undefined })} aria-label="Bairro">
+              <select className="ent" value={filtro.bairro ?? ''} onChange={(e) => setFiltro({ eleicao: filtro.eleicao, turno: filtro.turno, municipio: filtro.municipio, bairro: e.target.value || undefined })} aria-label="Bairro">
                 <option value="">Bairro</option>
                 {opcoes.bairros.map((b) => <option key={b}>{b}</option>)}
               </select>
