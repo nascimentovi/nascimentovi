@@ -96,17 +96,21 @@ export function interpretarTextoBu(linhas: LinhaTexto[], opcoes: { ocr: boolean 
     return c?.valor ?? '';
   };
 
-  // Município: "Município 63452 - CONCHAL" ou "Município: CONCHAL"
+  // Município: "Município 63452 - CONCHAL", "Município: CONCHAL" ou, no BU "Via Digital",
+  // "Município 63452" com o nome na linha seguinte.
   let municipio = '';
   let codigoMunicipio: string | undefined;
-  for (const l of norm) {
-    const m = l.n.match(/MUNICIPIO\s*:?\s*(\d{3,5})?\s*-?\s*([A-Z][A-Z' -]{1,60})/);
-    if (m) {
-      municipio = sanitizarTexto(m[2].replace(/\s+(ZONA|LOCAL|SECAO).*$/, ''));
-      codigoMunicipio = m[1] ? numeroCanonico(m[1]) : undefined;
-      confianca.municipio = Math.round(l.confianca);
-      break;
-    }
+  for (let i = 0; i < norm.length; i++) {
+    const l = norm[i];
+    const m = l.n.match(/MUNICIPIO\s*:?\s*(\d{3,5})?\s*-?\s*([A-Z][A-Z' -]{1,60})?/);
+    if (!m || (!m[1] && !m[2])) continue;
+    codigoMunicipio = m[1] ? numeroCanonico(m[1]) : undefined;
+    let nome = m[2] ? m[2].replace(/\s+(ZONA|LOCAL|SECAO).*$/, '') : '';
+    const prox = norm[i + 1]?.n ?? '';
+    if (!nome && /^[A-Z][A-Z' -]{1,60}$/.test(prox) && !/ZONA|LOCAL|SECAO|ELEITORES/.test(prox)) nome = prox;
+    municipio = sanitizarTexto(nome);
+    confianca.municipio = Math.round(l.confianca);
+    break;
   }
 
   // Com o código TSE do município, o nome vem da tabela oficial (mais confiável que o texto lido).
@@ -205,6 +209,8 @@ export function interpretarTextoBu(linhas: LinhaTexto[], opcoes: { ocr: boolean 
   let atual: ResultadoCargo | null = null;
   let idxCargo = -1;
   const caminho = (sufixo: string) => `cargos.${idxCargo}.${sufixo}`;
+  let partidoAtual: string | null = null;
+  const legendaTotalInformada = new Set<ResultadoCargo>();
 
   for (const l of norm) {
     const titulo = cargoDoTitulo(l.n);
@@ -215,6 +221,7 @@ export function interpretarTextoBu(linhas: LinhaTexto[], opcoes: { ocr: boolean 
         atual = cargos[idxCargo];
       } else {
         atual = { cargo: titulo, candidatos: [], votosNominais: null, votosLegenda: null, brancos: null, nulos: null, totalApurado: null };
+        partidoAtual = null;
         cargos.push(atual);
         idxCargo = cargos.length - 1;
         confianca[caminho('cargo')] = Math.round(l.confianca);
@@ -243,8 +250,31 @@ export function interpretarTextoBu(linhas: LinhaTexto[], opcoes: { ocr: boolean 
       if (ultimo !== null) { c.nulos = ultimo; confianca[caminho('nulos')] = conf; }
       continue;
     }
-    if (/(TOTAL|VOTOS)\s+(DE\s+)?LEGENDA/.test(l.n)) {
-      if (ultimo !== null) { c.votosLegenda = ultimo; confianca[caminho('votosLegenda')] = conf; }
+    // Cabeçalho de partido nos cargos proporcionais: "Partido: 11 - PP".
+    const mPartido = l.n.match(/^PARTIDO\s*:?\s*(\d{2})\b/);
+    if (mPartido) {
+      partidoAtual = mPartido[1];
+      continue;
+    }
+    if (/TOTAL\s+DO\s+PARTIDO/.test(l.n)) continue;
+    // Total de legenda do cargo.
+    if (/TOTAL\s+(DE\s+)?(VOTOS\s+)?(DE\s+)?LEGENDA/.test(l.n)) {
+      if (ultimo !== null) { c.votosLegenda = ultimo; confianca[caminho('votosLegenda')] = conf; legendaTotalInformada.add(c); }
+      continue;
+    }
+    // Votos de legenda de um partido ("Votos de legenda 0003", dentro do bloco do partido).
+    if (/VOTOS\s+(DE\s+)?LEGENDA/.test(l.n)) {
+      if (ultimo !== null && partidoAtual) {
+        if (ultimo > 0) {
+          const j = c.candidatos.length;
+          c.candidatos.push({ numero: numeroCanonico(partidoAtual), nome: `LEGENDA ${numeroCanonico(partidoAtual)}`, votos: ultimo, legenda: true });
+          confianca[caminho(`candidatos.${j}.votos`)] = conf;
+        }
+        if (!legendaTotalInformada.has(c)) c.votosLegenda = (c.votosLegenda ?? 0) + ultimo;
+      } else if (ultimo !== null) {
+        c.votosLegenda = ultimo;
+        confianca[caminho('votosLegenda')] = conf;
+      }
       continue;
     }
     if (/APTOS|COMPARECIMENTO|FALTOSOS|NOME DO CANDIDATO|PARTIDO\s+VOTOS|CODIGO|ASSINATURA|PAGINA|^VOTOS$/.test(l.n)) continue;

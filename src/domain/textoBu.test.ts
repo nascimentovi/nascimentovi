@@ -47,4 +47,48 @@ describe('interpretação de texto do BU (PDF/OCR)', () => {
     expect(r.avisos.length).toBeGreaterThan(0);
     expect(r.boletim.cargos).toHaveLength(0);
   });
+
+  it('lê o BU "Via Digital" (município em duas linhas e legenda por partido)', () => {
+    const texto = `Justiça Eleitoral
+Boletim de Urna
+Eleições Municipais 2020
+1º Turno
+(15/11/2020)
+Município 63452
+CONCHAL
+Zona Eleitoral 0075
+Local de Votação 1058
+Seção Eleitoral 0246
+Eleitores aptos 0389
+Comparecimento 0302
+Eleitores faltosos 0087
+Data de abertura da UE 15/11/2020
+------------------------VEREADOR------------------------
+Partido: 11 - PP
+Nome do candidato Num cand Votos
+PAQUEIRO 11000 0006
+JUNINHO 11111 0006
+Votos de legenda 0000
+Total do partido 0012
+Partido: 12 - PDT
+CHICA 12000 0005
+Votos de legenda 0003
+Total do partido 0008
+Eleitores aptos 0389
+Total de votos Nominais 0017
+Total de votos de Legenda 0003
+Brancos 0001
+Nulos 0001
+Total Apurado 0022
+-------------------------PREFEITO-------------------------
+VANDO MAGNUSSON 45 0136
+Total de votos Nominais 0136`;
+    const b = interpretarTextoBu(linhas(texto), { ocr: false }).boletim;
+    expect(b).toMatchObject({ municipio: 'CONCHAL', codigoMunicipio: '63452', zona: '75', local: '1058', secao: '246', dataVotacao: '2020-11-15', turno: '1' });
+    const ver = b.cargos[0];
+    expect(ver).toMatchObject({ cargo: 'VEREADOR', votosNominais: 17, votosLegenda: 3, brancos: 1, nulos: 1, totalApurado: 22 });
+    expect(ver.candidatos.filter((c) => c.legenda)).toEqual([{ numero: '12', nome: 'LEGENDA 12', votos: 3, legenda: true }]);
+    expect(ver.candidatos.filter((c) => !c.legenda).map((c) => c.numero)).toEqual(['11000', '11111', '12000']);
+    expect(b.cargos[1].candidatos).toEqual([{ numero: '45', nome: 'VANDO MAGNUSSON', votos: 136 }]);
+  });
 });
