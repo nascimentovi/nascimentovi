@@ -1,4 +1,5 @@
 import { LOCAIS_POR_MUNICIPIO, type LocalVotacao } from '../dados/locaisVotacao';
+import { codigoPorNomeUnico } from './municipios';
 import { numeroCanonico } from './normalizar';
 
 export interface InfoLocal extends LocalVotacao {
@@ -25,9 +26,24 @@ export function identificarLocal(codigoMunicipio: string | null | undefined, loc
   return porSecao ? { ...porSecao, secaoConfere: true, deduzidoPelaSecao: true } : null;
 }
 
-/** Atalho para registros: usa o código do município, local e seção gravados. */
-export function localDaLeitura(l: { boletim: { codigoMunicipio?: string }; local_votacao: string; secao: string }): InfoLocal | null {
-  return identificarLocal(l.boletim.codigoMunicipio, l.local_votacao, l.secao);
+interface LeituraMinima {
+  boletim: { codigoMunicipio?: string; municipio?: string };
+  municipio?: string;
+  local_votacao?: string;
+  secao: string;
+}
+
+/**
+ * Código TSE do município de um registro. Boletins lidos por PDF/foto podem ter
+ * só o nome (o código não foi reconhecido): usa o nome quando é único no país.
+ */
+export function codigoMunicipioDaLeitura(l: LeituraMinima): string {
+  return numeroCanonico(l.boletim.codigoMunicipio) || codigoPorNomeUnico(l.municipio || l.boletim.municipio) || '';
+}
+
+/** Atalho para registros: usa o município, local e seção gravados. */
+export function localDaLeitura(l: LeituraMinima): InfoLocal | null {
+  return identificarLocal(codigoMunicipioDaLeitura(l), l.local_votacao, l.secao);
 }
 
 export interface ProgressoLocal {
@@ -44,6 +60,8 @@ export interface ProgressoSecoes {
   lidas: number;
   faltam: number;
   porLocal: ProgressoLocal[];
+  /** Boletins do município cuja seção não consta da relação (não entram na contagem). */
+  foraDaRelacao: { secao: string; local: string }[];
 }
 
 /** Município de referência do contador de seções (Conchal/SP). */
@@ -55,17 +73,15 @@ export const MUNICIPIO_CONTADOR = '63452';
  * a forma de leitura. Recebe só os registros que devem contar (ex.: ativos da
  * eleição/turno escolhidos).
  */
-export function progressoSecoes(
-  leituras: { boletim: { codigoMunicipio?: string }; secao: string }[],
-  codigoMunicipio = MUNICIPIO_CONTADOR,
-): ProgressoSecoes | null {
+export function progressoSecoes(leituras: LeituraMinima[], codigoMunicipio = MUNICIPIO_CONTADOR): ProgressoSecoes | null {
   const locais = LOCAIS_POR_MUNICIPIO[numeroCanonico(codigoMunicipio)];
   if (!locais) return null;
-  const lidas = new Set(
-    leituras
-      .filter((l) => numeroCanonico(l.boletim.codigoMunicipio) === numeroCanonico(codigoMunicipio))
-      .map((l) => Number(numeroCanonico(l.secao))),
-  );
+  const doMunicipio = leituras.filter((l) => codigoMunicipioDaLeitura(l) === numeroCanonico(codigoMunicipio));
+  const lidas = new Set(doMunicipio.map((l) => Number(numeroCanonico(l.secao))));
+  const todas = new Set(locais.flatMap((l) => l.secoes));
+  const foraDaRelacao = doMunicipio
+    .filter((l) => !todas.has(Number(numeroCanonico(l.secao))))
+    .map((l) => ({ secao: numeroCanonico(l.secao), local: numeroCanonico(l.local_votacao) }));
   const porLocal = locais.map((l) => ({
     local: l.local,
     escola: l.escola,
@@ -76,5 +92,5 @@ export function progressoSecoes(
   }));
   const total = porLocal.reduce((n, l) => n + l.total, 0);
   const lidasTotal = porLocal.reduce((n, l) => n + l.lidas.length, 0);
-  return { total, lidas: lidasTotal, faltam: total - lidasTotal, porLocal };
+  return { total, lidas: lidasTotal, faltam: total - lidasTotal, porLocal, foraDaRelacao };
 }

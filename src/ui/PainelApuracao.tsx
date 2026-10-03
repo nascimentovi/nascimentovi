@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { db, lerConfig } from '../db/database';
 import { agregar, aplicarFiltro, type FiltroLeituras, type ResultadoAgregadoCargo } from '../domain/agregacao';
 import { eleicaoDoBoletim, turnoDoBoletim } from '../domain/eleicao';
-import { localDaLeitura, progressoSecoes, type ProgressoSecoes } from '../domain/locais';
+import { codigoMunicipioDaLeitura, localDaLeitura, MUNICIPIO_CONTADOR, progressoSecoes, type ProgressoSecoes } from '../domain/locais';
 import { comZeros, formatarNumero, formatarPct } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type TipoEntrada } from '../domain/types';
 import { descreverUrna } from '../services/registro';
@@ -63,7 +63,7 @@ function CartaoCargo({ c }: { c: ResultadoAgregadoCargo }) {
 }
 
 /** Contador de seções lidas × faltantes (Conchal), com o detalhe por local. */
-function ContadorSecoes({ p }: { p: ProgressoSecoes }) {
+function ContadorSecoes({ p, outrosFiltros }: { p: ProgressoSecoes; outrosFiltros: number }) {
   const pct = p.total ? p.lidas / p.total : 0;
   return (
     <section className="cartao contador">
@@ -77,6 +77,17 @@ function ContadorSecoes({ p }: { p: ProgressoSecoes }) {
         <div style={{ width: `${pct * 100}%` }} />
       </div>
       <p className="muted" style={{ margin: '4px 0 0' }}>{formatarPct(pct)} das seções apuradas</p>
+      {p.foraDaRelacao.length > 0 && (
+        <div className="msg aviso" style={{ marginTop: 8 }}>
+          ⚠️ {p.foraDaRelacao.length} boletim(ns) de Conchal não entraram na contagem porque a seção não consta da relação de seções:{' '}
+          {p.foraDaRelacao.map((f) => `seção ${f.secao}${f.local ? ` (local ${f.local})` : ''}`).join(', ')}. Confira o número da seção no boletim.
+        </div>
+      )}
+      {outrosFiltros > 0 && (
+        <div className="msg info" style={{ marginTop: 8 }}>
+          ℹ️ Há {outrosFiltros} boletim(ns) de Conchal de outra eleição ou turno, que não entram nesta contagem. Troque os filtros de eleição/turno acima para vê-los.
+        </div>
+      )}
       <details>
         <summary>Ver por local de votação</summary>
         <ul className="lista-locais">
@@ -132,6 +143,10 @@ export function PainelApuracao() {
 
   // Contador de seções de Conchal: considera a eleição e o turno escolhidos.
   const progresso = useMemo(() => progressoSecoes(base), [base]);
+  const conchalForaDoFiltro = useMemo(() => {
+    const naBase = new Set(base.map((l) => l.id));
+    return ativas.filter((l) => !naBase.has(l.id) && codigoMunicipioDaLeitura(l) === MUNICIPIO_CONTADOR).length;
+  }, [ativas, base]);
 
   // Opções em cascata: município → bairro → local de votação → seção.
   const opcoes = useMemo(() => {
@@ -195,7 +210,7 @@ export function PainelApuracao() {
         )}
         {filtrado && <button className="btn link" onClick={() => setFiltro({})}>✕ Limpar filtros</button>}
 
-        {progresso && <ContadorSecoes p={progresso} />}
+        {progresso && <ContadorSecoes p={progresso} outrosFiltros={conchalForaDoFiltro} />}
 
         <div className="kpis">
           <Kpi

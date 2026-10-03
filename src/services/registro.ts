@@ -2,6 +2,7 @@ import { type BancoApuracao, db as dbPadrao } from '../db/database';
 import { compararBoletins, type DiferencaCampo } from '../domain/comparacao';
 import { chaveUrna, gerarFingerprint } from '../domain/fingerprint';
 import { identificarLocal } from '../domain/locais';
+import { codigoPorNomeUnico } from '../domain/municipios';
 import { apenasDigitos, comZeros, dataBr, numeroCanonico } from '../domain/normalizar';
 import { ROTULO_ENTRADA, type Captura, type EventoLeitura, type Leitura } from '../domain/types';
 import { validarBoletim, type ResultadoValidacao } from '../domain/validacao';
@@ -70,6 +71,10 @@ export async function buscarDuplicata(captura: Captura, fingerprint: string, db:
 /** Valida e verifica duplicidade, sem gravar nada. */
 export async function prepararCaptura(captura: Captura, db: BancoApuracao = dbPadrao): Promise<Preparo> {
   // Boletim sem número do local (ex.: Sistema de Apuração, OCR): deduz pela seção, quando há tabela de locais.
+  if (!captura.boletim.codigoMunicipio) {
+    const cod = codigoPorNomeUnico(captura.boletim.municipio);
+    if (cod) captura.boletim.codigoMunicipio = cod;
+  }
   if (!captura.boletim.local) {
     const info = identificarLocal(captura.boletim.codigoMunicipio, '', captura.boletim.secao);
     if (info) captura.boletim.local = info.local;

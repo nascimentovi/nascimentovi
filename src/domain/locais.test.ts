@@ -64,3 +64,20 @@ describe('contador de seções de Conchal', () => {
     expect(p.porLocal.find((l) => l.local === '1090')!.lidas).toEqual([493]);
   });
 });
+
+describe('contador: boletins que antes ficavam de fora', () => {
+  it('conta boletim com só o nome do município (PDF/foto sem o código)', () => {
+    const p = progressoSecoes([{ boletim: { municipio: 'CONCHAL' }, municipio: 'CONCHAL', secao: '0035' }])!;
+    expect(p).toMatchObject({ lidas: 1, faltam: 71 });
+    expect(p.porLocal.find((l) => l.local === '1023')!.lidas).toEqual([35]);
+  });
+
+  it('informa boletins de Conchal com seção fora da relação', () => {
+    const p = progressoSecoes([
+      { boletim: { codigoMunicipio: '63452' }, secao: '0500', local_votacao: '1090' },
+      { boletim: { codigoMunicipio: '63452' }, secao: '0501', local_votacao: '1090' },
+    ])!;
+    expect(p.lidas).toBe(1);
+    expect(p.foraDaRelacao).toEqual([{ secao: '500', local: '1090' }]);
+  });
+});
