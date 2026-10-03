@@ -54,6 +54,11 @@ export class BancoApuracao extends Dexie {
           }
         }),
     );
+    // v3: zera os dados de votação uma única vez (recomeçar os testes do zero).
+    // Mantém candidatos e configurações (chaves públicas e nomes baixados do TSE).
+    this.version(3).upgrade((tx) =>
+      Promise.all([tx.table('leituras').clear(), tx.table('historico_exclusoes').clear(), tx.table('descartes').clear()]),
+    );
   }
 }
 
