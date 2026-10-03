@@ -83,6 +83,12 @@ function ContadorSecoes({ p, outrosFiltros }: { p: ProgressoSecoes; outrosFiltro
           {p.foraDaRelacao.map((f) => `seção ${f.secao}${f.local ? ` (local ${f.local})` : ''}`).join(', ')}. Confira o número da seção no boletim.
         </div>
       )}
+      {p.semMunicipio.length > 0 && (
+        <div className="msg aviso" style={{ marginTop: 8 }}>
+          ⚠️ {p.semMunicipio.length} boletim(ns) sem município identificado não entraram na contagem:{' '}
+          {p.semMunicipio.map((f) => `seção ${f.secao}${f.local ? ` (local ${f.local})` : ''}`).join(', ')}. Abra o registro no Histórico, exclua e envie o boletim novamente.
+        </div>
+      )}
       {outrosFiltros > 0 && (
         <div className="msg info" style={{ marginTop: 8 }}>
           ℹ️ Há {outrosFiltros} boletim(ns) de Conchal de outra eleição ou turno, que não entram nesta contagem. Troque os filtros de eleição/turno acima para vê-los.

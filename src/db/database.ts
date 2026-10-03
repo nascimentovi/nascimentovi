@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { municipioPorCodigoTse } from '../domain/municipios';
+import { repararMunicipio } from '../domain/reparo';
 import type { CadastroCandidato, Exclusao, Leitura, TipoEntrada } from '../domain/types';
 
 /** Tentativas descartadas (duplicatas, erros de validação) para auditoria. */
@@ -58,6 +59,16 @@ export class BancoApuracao extends Dexie {
     // Mantém candidatos e configurações (chaves públicas e nomes baixados do TSE).
     this.version(3).upgrade((tx) =>
       Promise.all([tx.table('leituras').clear(), tx.table('historico_exclusoes').clear(), tx.table('descartes').clear()]),
+    );
+    // v4: completa o município de registros gravados sem ele (PDF "Via Digital" lido antes
+    // da correção do leitor), a partir do texto original guardado. Votos não mudam.
+    this.version(4).upgrade((tx) =>
+      tx
+        .table('leituras')
+        .toCollection()
+        .modify((l: Leitura) => {
+          repararMunicipio(l);
+        }),
     );
   }
 }

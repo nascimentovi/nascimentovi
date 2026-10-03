@@ -62,6 +62,8 @@ export interface ProgressoSecoes {
   porLocal: ProgressoLocal[];
   /** Boletins do município cuja seção não consta da relação (não entram na contagem). */
   foraDaRelacao: { secao: string; local: string }[];
+  /** Boletins sem município identificado (não entram na contagem). */
+  semMunicipio: { secao: string; local: string }[];
 }
 
 /** Município de referência do contador de seções (Conchal/SP). */
@@ -92,5 +94,8 @@ export function progressoSecoes(leituras: LeituraMinima[], codigoMunicipio = MUN
   }));
   const total = porLocal.reduce((n, l) => n + l.total, 0);
   const lidasTotal = porLocal.reduce((n, l) => n + l.lidas.length, 0);
-  return { total, lidas: lidasTotal, faltam: total - lidasTotal, porLocal, foraDaRelacao };
+  const semMunicipio = leituras
+    .filter((l) => !codigoMunicipioDaLeitura(l))
+    .map((l) => ({ secao: numeroCanonico(l.secao), local: numeroCanonico(l.local_votacao) }));
+  return { total, lidas: lidasTotal, faltam: total - lidasTotal, porLocal, foraDaRelacao, semMunicipio };
 }

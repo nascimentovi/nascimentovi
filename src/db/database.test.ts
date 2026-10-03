@@ -38,3 +38,31 @@ describe('migração v3: zera os dados de votação', () => {
     reaberto.close();
   });
 });
+
+describe('migração v4: completa o município de registros antigos', () => {
+  it('recupera Conchal do texto do PDF "Via Digital" sem mexer nos votos', async () => {
+    const nome = 'migracao-v4';
+    const antigo = new Dexie(nome);
+    antigo.version(3).stores({
+      leituras: 'id, fingerprint, chaveUrna, status, tipo_entrada, timestamp_leitura, codigo_carga, [zona_eleitoral+secao], [municipio+zona_eleitoral]',
+      historico_exclusoes: '++id, leitura_id, timestamp_exclusao',
+      descartes: '++id, timestamp, tipo_entrada',
+      candidatos: 'chave, cargo',
+      config: 'chave',
+    });
+    const boletim = { municipio: '', zona: '75', local: '1058', secao: '246', dataVotacao: '2020-11-15', cargos: [{ cargo: 'PREFEITO', candidatos: [{ numero: '45', votos: 136 }] }] };
+    await antigo.table('leituras').add({
+      id: 'a', fingerprint: 'f', status: 'ativo', tipo_entrada: 'pdf', municipio: '', secao: '246', local_votacao: '1058', zona_eleitoral: '75', boletim,
+      dados_brutos: 'Boletim de Urna\nEleições Municipais 2020\nMunicípio 63452\nCONCHAL\nZona Eleitoral 0075\nSeção Eleitoral 0246',
+    });
+    antigo.close();
+
+    const db = new BancoApuracao(nome);
+    await db.open();
+    const l = (await db.leituras.get('a'))!;
+    expect(l.municipio).toBe('CONCHAL');
+    expect(l.boletim).toMatchObject({ codigoMunicipio: '63452', municipio: 'CONCHAL', uf: 'SP' });
+    expect(l.boletim.cargos[0].candidatos[0].votos).toBe(136);
+    db.close();
+  });
+});
