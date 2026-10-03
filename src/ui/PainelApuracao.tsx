@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { db, lerConfig } from '../db/database';
 import { agregar, aplicarFiltro, type FiltroLeituras, type ResultadoAgregadoCargo } from '../domain/agregacao';
 import { eleicaoDoBoletim, turnoDoBoletim } from '../domain/eleicao';
-import { localDaLeitura } from '../domain/locais';
+import { localDaLeitura, progressoSecoes, type ProgressoSecoes } from '../domain/locais';
 import { comZeros, formatarNumero, formatarPct } from '../domain/normalizar';
 import { ICONE_ENTRADA, ROTULO_ENTRADA, type TipoEntrada } from '../domain/types';
 import { descreverUrna } from '../services/registro';
@@ -62,6 +62,42 @@ function CartaoCargo({ c }: { c: ResultadoAgregadoCargo }) {
   );
 }
 
+/** Contador de seções lidas × faltantes (Conchal), com o detalhe por local. */
+function ContadorSecoes({ p }: { p: ProgressoSecoes }) {
+  const pct = p.total ? p.lidas / p.total : 0;
+  return (
+    <section className="cartao contador">
+      <h2>📋 Seções de Conchal</h2>
+      <div className="contador-nums">
+        <div><span className="val">{p.lidas}</span><span className="rot">lidas</span></div>
+        <div><span className="val">{p.faltam}</span><span className="rot">faltam</span></div>
+        <div><span className="val">{p.total}</span><span className="rot">total</span></div>
+      </div>
+      <div className="medidor grande" role="progressbar" aria-valuenow={p.lidas} aria-valuemin={0} aria-valuemax={p.total} aria-label="Seções lidas">
+        <div style={{ width: `${pct * 100}%` }} />
+      </div>
+      <p className="muted" style={{ margin: '4px 0 0' }}>{formatarPct(pct)} das seções apuradas</p>
+      <details>
+        <summary>Ver por local de votação</summary>
+        <ul className="lista-locais">
+          {p.porLocal.map((l) => (
+            <li key={l.local}>
+              <div className="titulo-local">
+                <span><strong>{l.local}</strong> – {l.escola} <span className="muted">({l.bairro})</span></span>
+                <span className={`etiqueta ${l.faltantes.length ? '' : 'ok'}`}>{l.lidas.length}/{l.total}</span>
+              </div>
+              <div className="medidor"><div style={{ width: `${(l.lidas.length / l.total) * 100}%` }} /></div>
+              <div className="muted">
+                {l.faltantes.length ? <>Faltam: {l.faltantes.join(', ')}</> : '✅ Todas as seções lidas'}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </section>
+  );
+}
+
 /** Valor de filtro que significa "todas as eleições / todos os turnos". */
 const TODOS = '*';
 
@@ -93,6 +129,9 @@ export function PainelApuracao() {
   const turnoEf = filtro.turno === TODOS ? undefined : (filtro.turno ?? turnoPadrao);
   const base = useMemo(() => naEleicao.filter((l) => !turnoEf || turnoDoBoletim(l.boletim) === turnoEf), [naEleicao, turnoEf]);
   const filtroEf: FiltroLeituras = { ...filtro, eleicao: eleicaoEf, turno: turnoEf };
+
+  // Contador de seções de Conchal: considera a eleição e o turno escolhidos.
+  const progresso = useMemo(() => progressoSecoes(base), [base]);
 
   // Opções em cascata: município → bairro → local de votação → seção.
   const opcoes = useMemo(() => {
@@ -155,6 +194,8 @@ export function PainelApuracao() {
           </div>
         )}
         {filtrado && <button className="btn link" onClick={() => setFiltro({})}>✕ Limpar filtros</button>}
+
+        {progresso && <ContadorSecoes p={progresso} />}
 
         <div className="kpis">
           <Kpi

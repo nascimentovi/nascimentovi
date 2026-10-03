@@ -215,3 +215,14 @@ dl.dados dd { margin: 0; font-weight: 600; word-break: break-word; }
 
 details > summary { cursor: pointer; font-weight: 600; }
 .sucesso-grande { font-size: 3rem; text-align: center; }
+
+/* ---------- Contador de seções ---------- */
+.contador h2 { margin-bottom: 8px; }
+.contador-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center; }
+.contador-nums .val { display: block; font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.contador-nums .rot { font-size: 0.78rem; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.03em; }
+.medidor.grande { height: 12px; margin-top: 10px; }
+.contador details { margin-top: 10px; }
+.lista-locais { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.lista-locais li { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.88rem; }
+.titulo-local { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
