@@ -70,6 +70,10 @@ export class BancoApuracao extends Dexie {
           repararMunicipio(l);
         }),
     );
+    // v5: zera novamente os dados de votação (novo recomeço dos testes), uma única vez.
+    this.version(5).upgrade((tx) =>
+      Promise.all([tx.table('leituras').clear(), tx.table('historico_exclusoes').clear(), tx.table('descartes').clear()]),
+    );
   }
 }
 
