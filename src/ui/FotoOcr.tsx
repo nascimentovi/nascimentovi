@@ -27,7 +27,7 @@ export function FotoOcr() {
     setErro('');
     if (!f) return;
     if (f.type && !f.type.startsWith('image/')) return setErro('Formato inválido: use uma foto JPG ou PNG.');
-    if (f.size > TAMANHO_MAX_IMAGEM) return setErro('Imagem muito grande (máximo 25 MB).');
+    if (f.size > TAMANHO_MAX_IMAGEM) return setErro('Imagem muito grande (máximo 500 MB).');
     try {
       const bmp = await carregarImagem(f);
       if (Math.max(bmp.width, bmp.height) < LADO_MIN_IMAGEM) {

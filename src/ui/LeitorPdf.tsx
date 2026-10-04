@@ -159,7 +159,7 @@ export function LeitorPdf() {
               <input type="file" accept="application/pdf,.pdf,.bu,.dat,application/octet-stream" hidden onChange={(e) => { escolher(e.target.files?.[0]); e.target.value = ''; }} />
             </label>
             <p className="muted">
-              Aceita <strong>PDF</strong> (máx. 50 MB; se tiver o QR Code do boletim, ele é lido e validado) ou o{' '}
+              Aceita <strong>PDF</strong> (máx. 500 MB; se tiver o QR Code do boletim, ele é lido e validado) ou o{' '}
               <strong>arquivo do boletim de urna do TSE</strong> (.bu ou .dat, baixado no site de resultados do TSE).
             </p>
           </>

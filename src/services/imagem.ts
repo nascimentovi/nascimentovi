@@ -16,7 +16,7 @@ function ctx2d(c: Canvas): CanvasRenderingContext2D {
 }
 
 export const TIPOS_IMAGEM = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-export const TAMANHO_MAX_IMAGEM = 25 * 1024 * 1024;
+export const TAMANHO_MAX_IMAGEM = 500 * 1024 * 1024;
 export const LADO_MIN_IMAGEM = 600;
 
 /** Carrega a foto respeitando a orientação EXIF. */

@@ -6,7 +6,7 @@ import { criarCanvas, detectarQrs } from './imagem';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-export const TAMANHO_MAX_PDF = 50 * 1024 * 1024;
+export const TAMANHO_MAX_PDF = 500 * 1024 * 1024;
 
 export interface ResultadoPdf {
   linhas: LinhaTexto[];
@@ -20,11 +20,15 @@ export class ErroPdf extends Error {}
 /** Confere tamanho e assinatura "%PDF-" do arquivo. */
 export async function validarArquivoPdf(arquivo: File): Promise<ArrayBuffer> {
   if (arquivo.size === 0) throw new ErroPdf('Arquivo vazio.');
-  if (arquivo.size > TAMANHO_MAX_PDF) throw new ErroPdf('Arquivo maior que 50 MB.');
-  const buf = await arquivo.arrayBuffer();
-  const cab = new TextDecoder().decode(new Uint8Array(buf, 0, Math.min(1024, buf.byteLength)));
+  if (arquivo.size > TAMANHO_MAX_PDF) throw new ErroPdf('Arquivo maior que 500 MB.');
+  // Confere o cabeçalho antes de carregar o arquivo inteiro na memória.
+  const cab = new TextDecoder().decode(await arquivo.slice(0, 1024).arrayBuffer());
   if (!cab.includes('%PDF-')) throw new ErroPdf('Arquivo inválido: não é um PDF.');
-  return buf;
+  try {
+    return await arquivo.arrayBuffer();
+  } catch {
+    throw new ErroPdf('Não foi possível carregar o arquivo: memória insuficiente no aparelho.');
+  }
 }
 
 /**
