@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import { VitePWA } from 'vite-plugin-pwa';
+import { fileURLToPath } from 'node:url';
 
 // Caminho base configurável (ex.: GitHub Pages em subdiretório).
 const base = process.env.BASE_PATH ?? '/';
@@ -9,7 +10,16 @@ const base = process.env.BASE_PATH ?? '/';
 export default defineConfig(({ mode }) => ({
   base,
   // Sintaxe compatível com navegadores móveis mais antigos (Safari 14+/Chrome 87+).
-  build: { target: ['es2020', 'safari14', 'chrome87'] },
+  build: {
+    target: ['es2020', 'safari14', 'chrome87'],
+    // Duas páginas: o app de boletins (index) e o painel de apuração para presidente.
+    rollupOptions: {
+      input: {
+        index: fileURLToPath(new URL('index.html', import.meta.url)),
+        presidente: fileURLToPath(new URL('presidente.html', import.meta.url)),
+      },
+    },
+  },
   plugins: [
     react(),
     // Câmera exige contexto seguro: `npm run dev:https` sobe com certificado local.

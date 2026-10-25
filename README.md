@@ -25,6 +25,15 @@ Exemplos fictícios para testar estão em `docs/exemplos/`:
 | `qr-bu-exemplo-3-partes.png` | Leitor QR → "QR de imagem", ou Foto do boletim → Galeria |
 | `bu-exemplo-secao-0182.pdf` | Upload de PDF (é o mesmo boletim do QR, então é detectado como duplicata) |
 
+## Painel de apuração — Presidente 2026 (`presidente.html`)
+
+Página separada do app de boletins (`/presidente.html`, ou `https://<usuario>.github.io/<repositorio>/presidente.html` no GitHub Pages) que acompanha o **2º turno para presidente em tempo real, por estado**, com o **comparativo do 1º turno** de cada candidato (percentual no 1º turno e variação em pontos percentuais).
+
+- Lê direto, pelo navegador, os arquivos oficiais do TSE (`resultados.tse.jus.br/oficial/ele2026/<eleição>/dados/<uf>/<uf>-c0001-e<eleição>-u.json`), para o Brasil, as 27 UFs e o exterior. Os códigos de 1º e 2º turno vêm do `ele-c.json` do TSE (padrão: 6257 e 6258).
+- Atualiza a cada 45 s (pausa com a aba em segundo plano), revalidando por ETag; botão para atualizar na hora. Se uma UF falhar numa rodada, o último dado dela continua na tela.
+- Percentuais sobre votos válidos; no 1º turno, o percentual do candidato entre todos os concorrentes. Ordenação por eleitorado, nome, % apurado ou disputa mais apertada.
+- Código: `src/domain/tseResultado.ts` (interpretação dos arquivos, testada), `src/services/tseApuracao.ts` (download) e `src/presidente/`.
+
 ## Funcionalidades
 
 | Escopo | Implementação |
