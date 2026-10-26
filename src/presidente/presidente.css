@@ -103,3 +103,44 @@
   .pres-lista { grid-template-columns: 1fr; }
   .pres-cand-pct { font-size: 1.9rem; }
 }
+
+/* Mapa por estado. */
+.pres-mapa { padding: 16px; display: grid; gap: 12px; }
+.pres-abas { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.pres-abas button { border: 0; background: var(--surface); padding: 6px 12px; cursor: pointer; color: var(--text-2); }
+.pres-abas button[aria-selected='true'] { background: var(--primary); color: var(--primary-ink); }
+.pres-mapa-area { position: relative; max-width: 640px; width: 100%; margin: 0 auto; }
+.pres-mapa-area svg { display: block; width: 100%; height: auto; }
+.pres-mapa-ufs path { stroke: var(--surface); stroke-width: 1.2; stroke-linejoin: round; cursor: pointer; transition: fill-opacity 0.4s; }
+.pres-mapa-ufs path.ativo { stroke: var(--text); stroke-width: 2; }
+.pres-mapa-ufs path.ativo { paint-order: stroke; }
+.pres-mapa-rotulos { pointer-events: none; }
+.pres-mapa-rotulos text {
+  font-size: 12px; fill: var(--text); font-variant-numeric: tabular-nums;
+  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round;
+}
+.pres-mapa-rotulos .uf { font-weight: 700; }
+.pres-mapa-rotulos line { stroke: var(--muted); stroke-width: 1; }
+.pres-dica {
+  position: absolute; z-index: 2; pointer-events: none; transform: translate(12px, -50%);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
+  padding: 8px 10px; display: grid; gap: 2px; font-size: 0.85rem; min-width: 170px; white-space: nowrap;
+}
+.pres-dica[data-lado='esquerda'] { transform: translate(calc(-100% - 12px), -50%); }
+.pres-dica-ap { color: var(--muted); font-size: 0.8rem; }
+.pres-dica-cand { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.pres-dica-cand b { margin-left: auto; padding-left: 8px; }
+.pres-mapa-legenda { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: center; align-items: flex-end; }
+.pres-escala { display: grid; gap: 4px; }
+.pres-escala-nome { font-size: 0.8rem; color: var(--text-2); }
+.pres-escala-cores { display: flex; gap: 2px; }
+.pres-escala-cores > span { display: grid; justify-items: center; gap: 2px; }
+.pres-escala-cores i { width: 34px; height: 10px; border-radius: 2px; }
+.pres-escala-cores small { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pres-escala-nota { flex-basis: 100%; text-align: center; color: var(--muted); font-size: 0.75rem; }
+/* Em telas estreitas o texto do SVG fica pequeno: só a sigla, maior; o % aparece ao tocar. */
+@media (max-width: 600px) {
+  .pres-mapa-rotulos text { font-size: 19px; stroke-width: 4px; }
+  .pres-mapa-rotulos .pct { display: none; }
+  .pres-dica { min-width: 150px; font-size: 0.8rem; }
+}

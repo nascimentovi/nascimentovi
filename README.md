@@ -31,6 +31,7 @@ Página separada do app de boletins (`/presidente.html`, ou `https://<usuario>.g
 
 - Lê direto, pelo navegador, os arquivos oficiais do TSE (`resultados.tse.jus.br/oficial/ele2026/<eleição>/dados/<uf>/<uf>-c0001-e<eleição>-u.json`), para o Brasil, as 27 UFs e o exterior. Os códigos de 1º e 2º turno vêm do `ele-c.json` do TSE (padrão: 6257 e 6258).
 - Atualiza a cada 45 s (pausa com a aba em segundo plano), revalidando por ETag; botão para atualizar na hora. Se uma UF falhar numa rodada, o último dado dela continua na tela.
+- **Mapa** do Brasil por estado: cor do candidato que lidera, mais forte quanto maior a vantagem, com o % do líder em cada UF (no celular, toque no estado). Também mostra o % de seções apuradas. Geometria em `src/dados/mapaBrasil.ts` (de [click_that_hood](https://github.com/codeforamerica/click_that_hood), simplificada).
 - Percentuais sobre votos válidos; no 1º turno, o percentual do candidato entre todos os concorrentes. Ordenação por eleitorado, nome, % apurado ou disputa mais apertada.
 - Código: `src/domain/tseResultado.ts` (interpretação dos arquivos, testada), `src/services/tseApuracao.ts` (download) e `src/presidente/`.
 

@@ -8,6 +8,7 @@ import {
   type Erros,
   type Resultados,
 } from '../services/tseApuracao';
+import { Mapa } from './Mapa';
 
 const INTERVALO_S = 45;
 
@@ -139,6 +140,8 @@ export function Painel() {
       )}
 
       {brasil && <CartaoBrasil r={brasil} p={primeiro.br} numeros={numeros} />}
+
+      <Mapa atual={atual} numeros={numeros} serie={serie} />
 
       <section className="pres-estados">
         <div className="pres-filtros">
