@@ -81,7 +81,10 @@ export function Painel() {
   const brasil = atual.br;
   // Cor e posição seguem o candidato (pelo número), nunca a colocação do momento.
   const numeros = useMemo(
-    () => (brasil?.candidatos ?? []).map((c) => c.numero).sort((a, b) => Number(a) - Number(b)),
+    () =>
+      [...(brasil?.candidatos ?? [])]
+        .sort((a, b) => posicaoCor(a.nome) - posicaoCor(b.nome) || Number(a.numero) - Number(b.numero))
+        .map((c) => c.numero),
     [brasil],
   );
 
@@ -180,6 +183,13 @@ export function Painel() {
 
 function ordenar(cs: Comparativo[], numeros: string[]): Comparativo[] {
   return [...cs].sort((a, b) => numeros.indexOf(a.numero) - numeros.indexOf(b.numero));
+}
+
+// Flávio em azul (1ª cor) e Lula em vermelho (2ª cor); outros nomes seguem o número.
+function posicaoCor(nome: string): number {
+  if (/fl[aá]vio/i.test(nome)) return 0;
+  if (/lula/i.test(nome)) return 2;
+  return 1;
 }
 
 const serie = (numeros: string[], n: string) => {

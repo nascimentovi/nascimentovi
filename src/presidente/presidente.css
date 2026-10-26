@@ -1,21 +1,21 @@
 /* Painel de apuração para presidente. Usa os tokens de ../styles.css. */
 :root {
   --cand-1: #2a78d6;
-  --cand-2: #eb6834;
+  --cand-2: #e34948;
   --sobe: #1a7f37;
   --desce: #c62828;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --cand-1: #3987e5;
-    --cand-2: #d95926;
+    --cand-2: #e66767;
     --sobe: #4cc26c;
     --desce: #f07070;
   }
 }
 :root[data-theme='dark'] {
   --cand-1: #3987e5;
-  --cand-2: #d95926;
+  --cand-2: #e66767;
   --sobe: #4cc26c;
   --desce: #f07070;
 }
